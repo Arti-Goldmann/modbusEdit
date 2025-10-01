@@ -63,21 +63,11 @@ void MainWindow::setupUI(){
         );
 
 
-    for(int i=0; i < 100; i++) {
-
-        // Добавляем одну строку
-        ui->tableWidget->insertRow(i);
-
-        // Добавляем данные согласно заголовкам столбцов
-        ui->tableWidget->setItem(i, 0, new QTableWidgetItem("Температура процессора")); // Название группы параметров
-        ui->tableWidget->setItem(i, 1, new QTableWidgetItem("R"));                    // Тип доступа
-        ui->tableWidget->setItem(i, 2, new QTableWidgetItem("INT16"));                // Тип данных
-        ui->tableWidget->setItem(i, 3, new QTableWidgetItem("0.1"));                  // Коэффициент
-        ui->tableWidget->setItem(i, 4, new QTableWidgetItem("°C"));                   // Ед. изм.
-        ui->tableWidget->setItem(i, 5, new QTableWidgetItem("-40...+85"));            // Диапазон значений
-        ui->tableWidget->setItem(i, 6, new QTableWidgetItem("100"));                  // Адрес (дес.)
-        ui->tableWidget->setItem(i, 7, new QTableWidgetItem("0x64"));                 // Адрес (hex.)
-        ui->tableWidget->setItem(i, 8, new QTableWidgetItem("Внутренний датчик"));    // Примечание
+    //Читаю файл с профилем
+    if(!readProfile()) {
+        QMessageBox::critical(nullptr,
+                              "Ошибка",
+                              "Не удалось открыть файл profile.json\n");
     }
 
     connect(ui->tableWidget, &QTableWidget::itemSelectionChanged,
@@ -93,6 +83,64 @@ void MainWindow::setupUI(){
     qDebug() << "SelectionBehavior:" << ui->tableWidget->selectionBehavior();
 
 }
+
+bool MainWindow::readProfile() {
+
+    // Ищем файл сначала рядом с исполняемым файлом, потом в исходной директории
+    QString profilePath;
+    QStringList searchPaths = {
+        QApplication::applicationDirPath() + "/profile.json",  // рядом с .exe
+        QApplication::applicationDirPath() + "/../../../../../profile.json"  // в исходной директории
+    };
+
+    for (const QString& path : searchPaths) {
+        if (QFile::exists(path)) {
+            profilePath = path;
+            break;
+        }
+    }
+
+    if (profilePath.isEmpty()) {
+        qDebug() << "Файл profile.json не найден!";
+        return false;
+    }
+
+    qDebug() << "Найден файл profile.json:" << profilePath;
+    QFile profileFile{profilePath};
+    if(!profileFile.open(QIODevice::ReadOnly)) {
+        qDebug() << "Файл не открылся!";
+        qDebug() << "Ошибка:" << profileFile.errorString();
+        return false;
+    }
+
+    qDebug() << "Файл УСПЕШНО открыт!";
+
+    QByteArray byteArr = profileFile.readAll();
+    profileFile.close();
+
+    QJsonDocument doc = QJsonDocument::fromJson(byteArr);
+    QJsonArray arr = doc.array();
+
+    int rowCounter = 0;
+    for(const QJsonValue &val : std::as_const(arr)) {
+
+        // Добавляем одну строку
+        ui->tableWidget->insertRow(rowCounter);
+
+        // Добавляем данные согласно заголовкам столбцов
+        ui->tableWidget->setItem(rowCounter, 0, new QTableWidgetItem( val["groupName" ].toString() )); // Название группы параметров
+        ui->tableWidget->setItem(rowCounter, 1, new QTableWidgetItem( val["accessType"].toString() )); // Тип доступа
+        ui->tableWidget->setItem(rowCounter, 2, new QTableWidgetItem( val["dataType"  ].toString() )); // Тип данных
+        ui->tableWidget->setItem(rowCounter, 3, new QTableWidgetItem( val["gain"      ].toString() )); // Коэффициент
+        ui->tableWidget->setItem(rowCounter, 4, new QTableWidgetItem( val["units"     ].toString() )); // Ед. изм.
+        ui->tableWidget->setItem(rowCounter, 5, new QTableWidgetItem( val["range"     ].toString() )); // Диапазон значений
+        ui->tableWidget->setItem(rowCounter, 6, new QTableWidgetItem( val["adressDec" ].toString() )); // Адрес (дес.)
+        ui->tableWidget->setItem(rowCounter, 7, new QTableWidgetItem( val["adressHex" ].toString() )); // Адрес (hex.)
+        ui->tableWidget->setItem(rowCounter, 8, new QTableWidgetItem( val["note"      ].toString() )); // Примечание
+    }
+    return true;
+}
+
 
 void MainWindow::onSelectionChanged(){
 

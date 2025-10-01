@@ -1,0 +1,56 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug modbusEdit",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/modbusEdit",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "QT_QPA_PLATFORM_PLUGIN_PATH",
+                    "value": "/usr/lib/x86_64-linux-gnu/qt5/plugins"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "cmake-build",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "logging": {
+                "engineLogging": false
+            }
+        },
+        {
+            "name": "Run modbusEdit",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/modbusEdit",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "QT_QPA_PLATFORM_PLUGIN_PATH",
+                    "value": "/usr/lib/x86_64-linux-gnu/qt5/plugins"
+                }
+            ],
+            "externalConsole": false,
+            "preLaunchTask": "cmake-build"
+        }
+    ]
+}

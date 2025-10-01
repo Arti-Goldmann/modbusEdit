@@ -1,0 +1,35 @@
+[
+    {
+        "groupName": "test1",
+        "accessType": "R",
+        "dataType": "int16",
+        "gain": "0.1",
+        "units": "A",
+        "range": "100",
+        "adressDec": "1000",
+        "adressHex": "0xA0A0",
+        "note": "test_note"
+    },
+    {
+        "groupName": "test2",
+        "accessType": "R",
+        "dataType": "int16",
+        "gain": "0.2",
+        "units": "A",
+        "range": "100",
+        "adressDec": "1000",
+        "adressHex": "0xA0A0",
+        "note": "test_note"
+    },
+    {
+        "groupName": "test3",
+        "accessType": "R",
+        "dataType": "int16",
+        "gain": "0.3",
+        "units": "A",
+        "range": "100",
+        "adressDec": "1000",
+        "adressHex": "0xA0A0",
+        "note": "test_note"
+    }
+]

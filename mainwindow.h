@@ -2,6 +2,13 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QDebug>
+#include <QMessageBox>
+#include <QDir>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,6 +27,8 @@ public:
 private:
     Ui::MainWindow *ui;
     void setupUI();
+    bool readProfile();
+
 
 private slots:
     void onSelectionChanged();

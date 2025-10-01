@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/build/**",
+                "${workspaceFolder}/build/modbusEdit_autogen/include",
+                "C:/Qt/*/include/**",
+                "C:/Qt/*/include/QtCore",
+                "C:/Qt/*/include/QtGui", 
+                "C:/Qt/*/include/QtWidgets",
+                "C:/Qt/Tools/mingw*/include/**"
+            ],
+            "defines": [
+                "QT_CORE_LIB",
+                "QT_GUI_LIB",
+                "QT_WIDGETS_LIB"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

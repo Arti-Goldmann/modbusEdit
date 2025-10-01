@@ -1,0 +1,10 @@
+{
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.configureOnOpen": true,
+    "files.associations": {
+        "*.ui": "xml",
+        "*.qrc": "xml"
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.intelliSenseMode": "linux-gcc-x64"
+}
