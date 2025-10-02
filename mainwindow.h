@@ -9,6 +9,10 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QDir>
+#include <QFileDialog>
+#include <QSettings>
+#include <QFileInfo>
+#include <QDir>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -27,11 +31,27 @@ public:
 private:
     Ui::MainWindow *ui;
     void setupUI();
-    bool readProfile();
+    void addPlusRow();
+
+    QString activeProfilePath = ""; //Путь до активного профиля
+
+    //Ключи json файла
+    const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
+                                     "units", "range", "adressDec", "adressHex", "note"};
+
+    //Названия колонок таблицы
+    const QStringList TABLE_HEADERS = {
+        "Название группы параметров / параметра",
+        "Тип доступа", "Тип данных", "Коэффициент",
+        "Ед. изм.", "Диапазон значений",
+        "Адрес (дес.)", "Адрес (hex.)", "Примечание"
+    };
 
 
 private slots:
     void onSelectionChanged();
     void onCellClicked(int row, int col);
+    bool readProfile();
+    bool saveProfile();
 };
 #endif // MAINWINDOW_H

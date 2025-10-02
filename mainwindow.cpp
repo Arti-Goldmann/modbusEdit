@@ -17,22 +17,14 @@ MainWindow::~MainWindow()
 void MainWindow::setupUI(){
 
     // Статус бар
-    statusBar()->showMessage("Готов");
+    statusBar()->showMessage("Выберете файл профиля");
 
     // Размер окна
     resize(1200, 1000);
     setWindowTitle("modbusEdit");
 
     ui->tableWidget->setColumnCount(9);
-
-    // Заголовки столбцов
-    QStringList headers = {
-        "Название группы параметров / параметра",
-        "Тип доступа", "Тип данных", "Коэффициент",
-        "Ед. изм.", "Диапазон значений",
-        "Адрес (дес.)", "Адрес (hex.)", "Примечание"
-    };
-    ui->tableWidget->setHorizontalHeaderLabels(headers);
+    ui->tableWidget->setHorizontalHeaderLabels(TABLE_HEADERS);
 
     // Настройка ширины столбцов
     ui->tableWidget->setColumnWidth(0, 300);  // Название группы параметров
@@ -60,85 +52,208 @@ void MainWindow::setupUI(){
         "QHeaderView::section {"
         "    border: 1px solid black;"
         "}"
+        "QTableWidget::item:selected {"
+        "    background-color: transparent;"
+        "    selection-background-color: transparent;"
+        "    border: 2px solid black;"
+        "}"
         );
 
+    connect(ui->open, &QAction::triggered,
+            this, &MainWindow::readProfile);
 
-    //Читаю файл с профилем
-    if(!readProfile()) {
-        QMessageBox::critical(nullptr,
-                              "Ошибка",
-                              "Не удалось открыть файл profile.json\n");
-    }
+    connect(ui->save, &QAction::triggered,
+            this, &MainWindow::saveProfile);
 
     connect(ui->tableWidget, &QTableWidget::itemSelectionChanged,
             this, &MainWindow::onSelectionChanged);
 
     connect(ui->tableWidget, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClicked);
-
-    // Диагностика
-    qDebug() << "Qt version:" << QT_VERSION_STR;
-    qDebug() << "=== Проверка настроек таблицы ===";
-    qDebug() << "SelectionMode:" << ui->tableWidget->selectionMode();
-    qDebug() << "SelectionBehavior:" << ui->tableWidget->selectionBehavior();
-
 }
 
 bool MainWindow::readProfile() {
+    QString errorMessage;
 
-    // Ищем файл сначала рядом с исполняемым файлом, потом в исходной директории
-    QString profilePath;
-    QStringList searchPaths = {
-        QApplication::applicationDirPath() + "/profile.json",  // рядом с .exe
-        QApplication::applicationDirPath() + "/../../../../../profile.json"  // в исходной директории
-    };
+    // Загрузить последний путь из настроек
+    QSettings settings("MPEI", "modbusEdit");
+    QString lastDir = settings.value("lastDirectory", QDir::homePath()).toString();
 
-    for (const QString& path : searchPaths) {
-        if (QFile::exists(path)) {
-            profilePath = path;
-            break;
-        }
-    }
-
+    QString profilePath = QFileDialog::getOpenFileName(this, tr("Open File"),
+                                                    lastDir,
+                                                    tr("JSON (*.json)"));
+    
     if (profilePath.isEmpty()) {
-        qDebug() << "Файл profile.json не найден!";
+        errorMessage = "Файл profile.json не найден!";
+        qCritical() << errorMessage;
+        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
         return false;
     }
+
+    // Нашли файл
+    activeProfilePath = profilePath;
+    // Сохранить директорию для следующего раза
+    QFileInfo fileInfo(profilePath);
+    settings.setValue("lastDirectory", fileInfo.absolutePath());
 
     qDebug() << "Найден файл profile.json:" << profilePath;
+    
+    // Открытие файла
     QFile profileFile{profilePath};
     if(!profileFile.open(QIODevice::ReadOnly)) {
-        qDebug() << "Файл не открылся!";
-        qDebug() << "Ошибка:" << profileFile.errorString();
+        errorMessage = QString("Не удалось открыть файл: %1\nОшибка: %2")
+                          .arg(profilePath, profileFile.errorString());
+        qCritical() << errorMessage;
+        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
         return false;
     }
 
-    qDebug() << "Файл УСПЕШНО открыт!";
-
+    // Чтение файла
     QByteArray byteArr = profileFile.readAll();
     profileFile.close();
+    
+    if (byteArr.isEmpty()) {
+        errorMessage = "Файл profile.json пустой или не удалось прочитать данные";
+        qCritical() << errorMessage;
+        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        return false;
+    }
 
-    QJsonDocument doc = QJsonDocument::fromJson(byteArr);
+    // Парсинг JSON
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(byteArr, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError) {
+        errorMessage = QString("Ошибка парсинга JSON:\n%1\nСтрока: %2")
+                          .arg(parseError.errorString(), QString::number(parseError.offset));
+        qCritical() << errorMessage;
+        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        return false;
+    }
+    
+    if (!doc.isArray()) {
+        errorMessage = "JSON файл должен содержать массив объектов";
+        qCritical() << errorMessage;
+        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        return false;
+    }
+
     QJsonArray arr = doc.array();
+    
+    if (arr.isEmpty()) {
+        errorMessage = "JSON массив пустой";
+        qWarning() << errorMessage;
+        QMessageBox::warning(this, "Предупреждение", errorMessage);
+        return true; // Не критическая ошибка
+    }
 
+    // Очищаем таблицу перед загрузкой
+    ui->tableWidget->setRowCount(0);
+    
     int rowCounter = 0;
     for(const QJsonValue &val : std::as_const(arr)) {
-
-        // Добавляем одну строку
+        
+        QJsonObject obj = val.toObject();
+        
+        // Добавляем строку в таблицу
         ui->tableWidget->insertRow(rowCounter);
 
-        // Добавляем данные согласно заголовкам столбцов
-        ui->tableWidget->setItem(rowCounter, 0, new QTableWidgetItem( val["groupName" ].toString() )); // Название группы параметров
-        ui->tableWidget->setItem(rowCounter, 1, new QTableWidgetItem( val["accessType"].toString() )); // Тип доступа
-        ui->tableWidget->setItem(rowCounter, 2, new QTableWidgetItem( val["dataType"  ].toString() )); // Тип данных
-        ui->tableWidget->setItem(rowCounter, 3, new QTableWidgetItem( val["gain"      ].toString() )); // Коэффициент
-        ui->tableWidget->setItem(rowCounter, 4, new QTableWidgetItem( val["units"     ].toString() )); // Ед. изм.
-        ui->tableWidget->setItem(rowCounter, 5, new QTableWidgetItem( val["range"     ].toString() )); // Диапазон значений
-        ui->tableWidget->setItem(rowCounter, 6, new QTableWidgetItem( val["adressDec" ].toString() )); // Адрес (дес.)
-        ui->tableWidget->setItem(rowCounter, 7, new QTableWidgetItem( val["adressHex" ].toString() )); // Адрес (hex.)
-        ui->tableWidget->setItem(rowCounter, 8, new QTableWidgetItem( val["note"      ].toString() )); // Примечание
+        //Получаем строку из объекта json и кладем в соответсвующую колонку
+        for(int col = 0; col < COLUMN_KEYS.size(); col++) {
+            QString str = obj[COLUMN_KEYS[col]].toString();
+            ui->tableWidget->setItem(rowCounter, col, new QTableWidgetItem(str));
+        }
+        rowCounter++;
     }
+
+    addPlusRow(); //Добавляем последнюю строку с плюсиком
+    
+    qInfo() << QString("Успешно загружен профиль: %1 строк").arg(rowCounter);
     return true;
+}
+
+bool MainWindow::saveProfile(){
+    QString errorMessage;
+    QJsonArray jsonArr;
+
+    //Проходим по всем строкам таблицы, кроме последней, потому что там строка с "+"
+    for(int rowCounter = 0; rowCounter < ui->tableWidget->rowCount() - 1; rowCounter++) {
+        //Проходим по всем колонкам таблицы и сохраняем в соответсвующий ключ json
+        QJsonObject obj;
+
+        for(int col = 0; col < COLUMN_KEYS.size(); col++) {
+            QTableWidgetItem* item = ui->tableWidget->item(rowCounter, col);
+            obj[COLUMN_KEYS[col]] = item ? item->text() : "";
+        }
+
+        jsonArr.append(obj);
+    }
+
+    QString profilePath = activeProfilePath;
+
+    // Открытие файла
+    if(profilePath != "") { //Открыли профиль и есть путь до него
+        QFile profileFile{profilePath};
+        if(!profileFile.open(QIODevice::WriteOnly)) {
+            errorMessage = QString("Не удалось открыть файл: %1\nОшибка: %2")
+                               .arg(profilePath, profileFile.errorString());
+            qCritical() << errorMessage;
+            QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+            return false;
+        }
+
+        QJsonDocument doc(jsonArr);
+        QByteArray byteArr = doc.toJson(QJsonDocument::Indented);
+
+        qint64 bytesWritten = profileFile.write(byteArr);
+        if(bytesWritten == -1) {
+            // Ошибка записи
+            errorMessage = QString("Не удалось записать в файл: %1\nОшибка: %2")
+                               .arg(profilePath, profileFile.errorString());
+            qCritical() << errorMessage;
+            QMessageBox::critical(this, "Ошибка сохранения профиля", errorMessage);
+        }
+        if(bytesWritten != byteArr.size()) {
+            // Записалось не всё
+            errorMessage = QString("В файл профиля записались не все данные: %1\nОшибка: %2")
+                               .arg(profilePath, profileFile.errorString());
+            qCritical() << errorMessage;
+            QMessageBox::critical(this, "Ошибка сохранения профиля", errorMessage);
+        }
+
+        profileFile.close();
+    } else {
+        //TODO: а если ничего еще не открыли, то надо создать
+        return false;
+    }
+
+    statusBar()->showMessage("Файл успешно сохранен", 5000);
+    return true;
+}
+
+
+void MainWindow::addPlusRow() {
+    int row = ui->tableWidget->rowCount();
+    ui->tableWidget->insertRow(row);
+
+    // Объединить все столбцы в одну ячейку
+    ui->tableWidget->setSpan(row, 0, 1, 9); // row, column, rowSpan, columnSpan
+
+    // Создать элемент с плюсиком
+    QTableWidgetItem *item = new QTableWidgetItem(" +");
+
+    QFont font;
+    font.setPointSize(18);        // размер шрифта
+    font.setBold(true);           // жирный
+
+    item->setFont(font);
+    item->setForeground(Qt::green);
+    item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+    // Сделать нередактируемой
+    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+
+    ui->tableWidget->setItem(row, 0, item);
 }
 
 
@@ -156,5 +271,10 @@ void MainWindow::onSelectionChanged(){
 // Реализация слота для клика по ячейке
 void MainWindow::onCellClicked(int row, int col)
 {
+    if (row == ui->tableWidget->rowCount() - 1) {
+        // Клик по последней строке - вставляем новую ПЕРЕД ней
+        ui->tableWidget->insertRow(row);
+    }
+
     qDebug() << "Clicked - Строка:" << row << "Колонка:" << col;
 }

@@ -1,35 +1,68 @@
 [
     {
-        "groupName": "test1",
         "accessType": "R",
+        "adressDec": "1000",
+        "adressHex": "0xA0A0",
         "dataType": "int16",
         "gain": "0.1",
-        "units": "A",
+        "groupName": "test1",
+        "note": "test_note",
         "range": "100",
-        "adressDec": "1000",
-        "adressHex": "0xA0A0",
-        "note": "test_note"
+        "units": "A"
     },
     {
-        "groupName": "test2",
         "accessType": "R",
+        "adressDec": "1000",
+        "adressHex": "0xA0A0",
         "dataType": "int16",
         "gain": "0.2",
-        "units": "A",
+        "groupName": "test2",
+        "note": "test_note",
         "range": "100",
-        "adressDec": "1000",
-        "adressHex": "0xA0A0",
-        "note": "test_note"
+        "units": "A"
     },
     {
-        "groupName": "test3",
         "accessType": "R",
-        "dataType": "int16",
-        "gain": "0.3",
-        "units": "A",
-        "range": "100",
         "adressDec": "1000",
         "adressHex": "0xA0A0",
-        "note": "test_note"
+        "dataType": "int16",
+        "gain": "0.3",
+        "groupName": "test3",
+        "note": "test_note",
+        "range": "100",
+        "units": "A"
+    },
+    {
+        "accessType": "",
+        "adressDec": "",
+        "adressHex": "",
+        "dataType": "",
+        "gain": "",
+        "groupName": "test4",
+        "note": "",
+        "range": "",
+        "units": ""
+    },
+    {
+        "accessType": "",
+        "adressDec": "",
+        "adressHex": "",
+        "dataType": "",
+        "gain": "",
+        "groupName": "",
+        "note": "",
+        "range": "",
+        "units": ""
+    },
+    {
+        "accessType": "",
+        "adressDec": "",
+        "adressHex": "",
+        "dataType": "",
+        "gain": "",
+        "groupName": "test5",
+        "note": "",
+        "range": "",
+        "units": ""
     }
 ]
