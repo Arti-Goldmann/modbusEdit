@@ -16,12 +16,22 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupUI(){
 
+    // Отключить tooltip для всего приложения
+    this->setToolTipDuration(0);
+    
+    // Рекурсивно убрать tooltip у всех дочерних виджетов
+    const QList<QWidget*> widgets = this->findChildren<QWidget*>();
+    for (QWidget* widget : std::as_const(widgets)) {
+        widget->setToolTip("");
+    }
+
     // Статус бар
     statusBar()->showMessage("Выберете файл профиля");
 
     // Размер окна
     resize(1200, 1000);
     setWindowTitle("modbusEdit");
+    setWindowIcon(QIcon(":/ModBus.ico"));
 
     ui->tableWidget->setColumnCount(9);
     ui->tableWidget->setHorizontalHeaderLabels(TABLE_HEADERS);
@@ -47,6 +57,8 @@ void MainWindow::setupUI(){
     ui->tableWidget->setAlternatingRowColors(true); //Делает строку черно-белой через одну
     ui->tableWidget->horizontalHeader()->setStretchLastSection(true); //Растягивает последний столбец на всю оставшуюся ширину таблицы
 
+    addPlusRow(); //Добавляем последнюю строку с плюсиком
+
     //Настройка стиля
     ui->tableWidget->setStyleSheet(
         "QHeaderView::section {"
@@ -65,6 +77,9 @@ void MainWindow::setupUI(){
     connect(ui->save, &QAction::triggered,
             this, &MainWindow::saveProfile);
 
+    connect(ui->saveAs, &QAction::triggered,
+            this, &MainWindow::saveAsProfile);
+
     connect(ui->tableWidget, &QTableWidget::itemSelectionChanged,
             this, &MainWindow::onSelectionChanged);
 
@@ -82,64 +97,57 @@ bool MainWindow::readProfile() {
     QString profilePath = QFileDialog::getOpenFileName(this, tr("Open File"),
                                                     lastDir,
                                                     tr("JSON (*.json)"));
-    
+
     if (profilePath.isEmpty()) {
-        errorMessage = "Файл profile.json не найден!";
-        qCritical() << errorMessage;
-        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        showProfileError("Файл profile.json не найден!", "Ошибка загрузки профиля");
         return false;
     }
 
     // Нашли файл
     activeProfilePath = profilePath;
+
     // Сохранить директорию для следующего раза
     QFileInfo fileInfo(profilePath);
     settings.setValue("lastDirectory", fileInfo.absolutePath());
 
+    ui->fileLabel->setText(QString("Файл: %1").arg(fileInfo.fileName()));
+
     qDebug() << "Найден файл profile.json:" << profilePath;
-    
+
     // Открытие файла
     QFile profileFile{profilePath};
     if(!profileFile.open(QIODevice::ReadOnly)) {
-        errorMessage = QString("Не удалось открыть файл: %1\nОшибка: %2")
-                          .arg(profilePath, profileFile.errorString());
-        qCritical() << errorMessage;
-        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        showProfileError(QString("Не удалось открыть файл: %1\nОшибка: %2")
+                          .arg(profilePath, profileFile.errorString()), "Ошибка загрузки профиля");
         return false;
     }
 
     // Чтение файла
     QByteArray byteArr = profileFile.readAll();
     profileFile.close();
-    
+
     if (byteArr.isEmpty()) {
-        errorMessage = "Файл profile.json пустой или не удалось прочитать данные";
-        qCritical() << errorMessage;
-        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        showProfileError("Файл profile.json пустой или не удалось прочитать данные", "Ошибка загрузки профиля");
         return false;
     }
 
     // Парсинг JSON
     QJsonParseError parseError;
     QJsonDocument doc = QJsonDocument::fromJson(byteArr, &parseError);
-    
+
     if (parseError.error != QJsonParseError::NoError) {
-        errorMessage = QString("Ошибка парсинга JSON:\n%1\nСтрока: %2")
-                          .arg(parseError.errorString(), QString::number(parseError.offset));
-        qCritical() << errorMessage;
-        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        showProfileError(QString("Ошибка парсинга JSON:\n%1\nСтрока: %2")
+                          .arg(parseError.errorString(), QString::number(parseError.offset)), "Ошибка загрузки профиля");
         return false;
     }
-    
+
     if (!doc.isArray()) {
-        errorMessage = "JSON файл должен содержать массив объектов";
-        qCritical() << errorMessage;
-        QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+        showProfileError("JSON файл должен содержать массив объектов", "Ошибка загрузки профиля");
         return false;
     }
 
     QJsonArray arr = doc.array();
-    
+
     if (arr.isEmpty()) {
         errorMessage = "JSON массив пустой";
         qWarning() << errorMessage;
@@ -149,12 +157,12 @@ bool MainWindow::readProfile() {
 
     // Очищаем таблицу перед загрузкой
     ui->tableWidget->setRowCount(0);
-    
+
     int rowCounter = 0;
     for(const QJsonValue &val : std::as_const(arr)) {
-        
+
         QJsonObject obj = val.toObject();
-        
+
         // Добавляем строку в таблицу
         ui->tableWidget->insertRow(rowCounter);
 
@@ -167,13 +175,48 @@ bool MainWindow::readProfile() {
     }
 
     addPlusRow(); //Добавляем последнюю строку с плюсиком
-    
-    qInfo() << QString("Успешно загружен профиль: %1 строк").arg(rowCounter);
+
+    statusBar()->showMessage("Файл успешно открыт", 5000);
     return true;
 }
 
+void MainWindow::showProfileError(const QString& message, const QString& title) {
+    statusBar()->showMessage(title, 5000);
+    qCritical() << message;
+    QMessageBox::critical(this, title, message);
+}
+
+bool MainWindow::saveAsProfile(){
+
+    // Загрузить последний путь из настроек
+    QSettings settings("MPEI", "modbusEdit");
+    QString lastDir = settings.value("lastDirectory", QDir::homePath()).toString();
+
+    QString profilePath = QFileDialog::getSaveFileName(this, tr("Save File"),
+                                                       lastDir,
+                                                       tr("JSON (*.json)"));
+
+    if (profilePath.isEmpty()) {
+        showProfileError("Файл профиля не сохранен", "Ошибка сохранения профиля");
+        return false;
+    }
+
+    // Выбрали куда сохранить файл
+    activeProfilePath = profilePath;
+
+    // Сохранить директорию для следующего раза
+    QFileInfo fileInfo(profilePath);
+    settings.setValue("lastDirectory", fileInfo.absolutePath());
+
+    ui->fileLabel->setText(QString("Файл: %1").arg(fileInfo.fileName()));
+
+    //Сохраняем профиль в файл
+    //Дошли сюда только в том случае, если пользователь согласился на перезапись
+    return saveProfile();
+}
+
+
 bool MainWindow::saveProfile(){
-    QString errorMessage;
     QJsonArray jsonArr;
 
     //Проходим по всем строкам таблицы, кроме последней, потому что там строка с "+"
@@ -192,13 +235,13 @@ bool MainWindow::saveProfile(){
     QString profilePath = activeProfilePath;
 
     // Открытие файла
-    if(profilePath != "") { //Открыли профиль и есть путь до него
+    if(profilePath != "") {
+        //Пришли сюда после нажатия "Открыть" или из "Сохранить как" и есть путь до файла профиля
         QFile profileFile{profilePath};
+
         if(!profileFile.open(QIODevice::WriteOnly)) {
-            errorMessage = QString("Не удалось открыть файл: %1\nОшибка: %2")
-                               .arg(profilePath, profileFile.errorString());
-            qCritical() << errorMessage;
-            QMessageBox::critical(this, "Ошибка загрузки профиля", errorMessage);
+            showProfileError(QString("Не удалось открыть файл: %1\nОшибка: %2")
+                               .arg(profilePath, profileFile.errorString()), "Ошибка сохранения профиля");
             return false;
         }
 
@@ -208,23 +251,24 @@ bool MainWindow::saveProfile(){
         qint64 bytesWritten = profileFile.write(byteArr);
         if(bytesWritten == -1) {
             // Ошибка записи
-            errorMessage = QString("Не удалось записать в файл: %1\nОшибка: %2")
-                               .arg(profilePath, profileFile.errorString());
-            qCritical() << errorMessage;
-            QMessageBox::critical(this, "Ошибка сохранения профиля", errorMessage);
+            showProfileError(QString("Не удалось записать в файл: %1\nОшибка: %2")
+                               .arg(profilePath, profileFile.errorString()), "Ошибка сохранения профиля");
+            profileFile.close();
+            return false;
         }
         if(bytesWritten != byteArr.size()) {
             // Записалось не всё
-            errorMessage = QString("В файл профиля записались не все данные: %1\nОшибка: %2")
-                               .arg(profilePath, profileFile.errorString());
-            qCritical() << errorMessage;
-            QMessageBox::critical(this, "Ошибка сохранения профиля", errorMessage);
+            showProfileError(QString("В файл профиля записались не все данные: %1\nОшибка: %2")
+                               .arg(profilePath, profileFile.errorString()), "Ошибка сохранения профиля");
+            profileFile.close();
+            return false;
         }
 
         profileFile.close();
     } else {
-        //TODO: а если ничего еще не открыли, то надо создать
-        return false;
+        //Если профиль никакой не открыли еще и просто вносили изменения в исходной таблице, то нужно его "Cохранить как"
+        saveAsProfile();
+        return true;
     }
 
     statusBar()->showMessage("Файл успешно сохранен", 5000);

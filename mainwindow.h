@@ -34,6 +34,8 @@ private:
     void addPlusRow();
 
     QString activeProfilePath = ""; //Путь до активного профиля
+    
+    void showProfileError(const QString& message, const QString& title = "Ошибка профиля");
 
     //Ключи json файла
     const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
@@ -53,5 +55,6 @@ private slots:
     void onCellClicked(int row, int col);
     bool readProfile();
     bool saveProfile();
+    bool saveAsProfile();
 };
 #endif // MAINWINDOW_H
