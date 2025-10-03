@@ -37,8 +37,10 @@ private:
     void addPlusRow();
 
     QString activeProfilePath = ""; //Путь до активного профиля
+    QString activeFileGenPath = ""; //Путь до файла генерации
     
     void showProfileError(const QString& message, const QString& title = "Ошибка профиля");
+    QJsonArray readJson(const QString& profilePath);
 
     //Ключи json файла
     const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
@@ -59,5 +61,7 @@ private slots:
     bool readProfile();
     bool saveProfile();
     bool saveAsProfile();
+    bool startGeneration();
+    bool getGenerationPath();
 };
 #endif // MAINWINDOW_H

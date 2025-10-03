@@ -72,7 +72,11 @@ void MainWindow::setupUI(){
         "}"
         );
 
-    outFileGenerator.generate(); //TODO: временно тут, потом по нажатию кнопки
+    connect(ui->toolBtnGenPath, &QPushButton::clicked,
+            this, &MainWindow::getGenerationPath);
+
+    connect(ui->startGenBtn, &QPushButton::clicked,
+            this, &MainWindow::startGeneration);
 
     connect(ui->open, &QAction::triggered,
             this, &MainWindow::readProfile);
@@ -89,6 +93,77 @@ void MainWindow::setupUI(){
     connect(ui->tableWidget, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClicked);
 }
+bool MainWindow::getGenerationPath() {
+
+    // Загрузить последний путь из настроек
+    QSettings settings("MPEI", "modbusEdit");
+    QString lastDir = settings.value("lastDirFileGen", QDir::homePath()).toString();
+
+    QString fileGenDir = QFileDialog::getExistingDirectory(
+        this,
+        tr("Выберите директорию"),
+        lastDir,
+        QFileDialog::ShowDirsOnly
+        );
+
+    if (fileGenDir.isEmpty()) {
+        showProfileError("Директори генерации не найдена", "Ошибка генерации файла");
+        return false;
+    }
+
+    // Нашли директорию
+    activeFileGenPath = fileGenDir + "/MBedit.c";
+
+    qDebug() << "Директория генерации:" + fileGenDir;
+    qDebug() << "Путь файла генерации:" + activeFileGenPath;
+
+    // Сохранить директорию для следующего раза
+    QFileInfo fileInfo(activeFileGenPath);
+    settings.setValue("lastDirFileGen", fileInfo.absolutePath());
+
+    ui->absPathToFileGenLabel->setText(QString("Путь генерации файла: %1").arg(fileInfo.absoluteFilePath()));
+    ui->lineEditFieGenDir->setText(fileInfo.absolutePath());
+
+    return true;
+}
+
+QJsonArray MainWindow::readJson(const QString& profilePath) {
+
+    // Открытие файла
+    QFile profileFile{profilePath};
+    if(!profileFile.open(QIODevice::ReadOnly)) {
+        showProfileError(QString("Не удалось открыть файл: %1\nОшибка: %2")
+                             .arg(profilePath, profileFile.errorString()), "Ошибка загрузки профиля");
+        return {};
+    }
+
+    // Чтение файла
+    QByteArray byteArr = profileFile.readAll();
+    profileFile.close();
+
+    if (byteArr.isEmpty()) {
+        showProfileError("Файл profile.json пустой или не удалось прочитать данные", "Ошибка загрузки профиля");
+        return {};
+    }
+
+    // Парсинг JSON
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(byteArr, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) {
+        showProfileError(QString("Ошибка парсинга JSON:\n%1\nСтрока: %2")
+                             .arg(parseError.errorString(), QString::number(parseError.offset)), "Ошибка загрузки профиля");
+        return {};
+    }
+
+    if (!doc.isArray()) {
+        showProfileError("JSON файл должен содержать массив объектов", "Ошибка загрузки профиля");
+        return {};
+    }
+
+    return doc.array();
+}
+
 
 bool MainWindow::readProfile() {
     QString errorMessage;
@@ -102,7 +177,7 @@ bool MainWindow::readProfile() {
                                                     tr("JSON (*.json)"));
 
     if (profilePath.isEmpty()) {
-        showProfileError("Файл profile.json не найден!", "Ошибка загрузки профиля");
+        showProfileError("Файл .json не найден!", "Ошибка загрузки профиля");
         return false;
     }
 
@@ -112,44 +187,9 @@ bool MainWindow::readProfile() {
     // Сохранить директорию для следующего раза
     QFileInfo fileInfo(profilePath);
     settings.setValue("lastDirectory", fileInfo.absolutePath());
+    ui->fileLabel->setText(QString("Файл профиля: %1").arg(fileInfo.fileName()));
 
-    ui->fileLabel->setText(QString("Файл: %1").arg(fileInfo.fileName()));
-
-    qDebug() << "Найден файл profile.json:" << profilePath;
-
-    // Открытие файла
-    QFile profileFile{profilePath};
-    if(!profileFile.open(QIODevice::ReadOnly)) {
-        showProfileError(QString("Не удалось открыть файл: %1\nОшибка: %2")
-                          .arg(profilePath, profileFile.errorString()), "Ошибка загрузки профиля");
-        return false;
-    }
-
-    // Чтение файла
-    QByteArray byteArr = profileFile.readAll();
-    profileFile.close();
-
-    if (byteArr.isEmpty()) {
-        showProfileError("Файл profile.json пустой или не удалось прочитать данные", "Ошибка загрузки профиля");
-        return false;
-    }
-
-    // Парсинг JSON
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(byteArr, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        showProfileError(QString("Ошибка парсинга JSON:\n%1\nСтрока: %2")
-                          .arg(parseError.errorString(), QString::number(parseError.offset)), "Ошибка загрузки профиля");
-        return false;
-    }
-
-    if (!doc.isArray()) {
-        showProfileError("JSON файл должен содержать массив объектов", "Ошибка загрузки профиля");
-        return false;
-    }
-
-    QJsonArray arr = doc.array();
+    QJsonArray arr = readJson(profilePath);
 
     if (arr.isEmpty()) {
         errorMessage = "JSON массив пустой";
@@ -278,6 +318,17 @@ bool MainWindow::saveProfile(){
     return true;
 }
 
+bool MainWindow::startGeneration(){
+
+    QJsonArray jsonArr = readJson(activeProfilePath);
+
+    if(!jsonArr.isEmpty() && (activeFileGenPath != "")) {
+        if(!outFileGenerator.generate(jsonArr, activeFileGenPath)) return false;
+        else return true;
+    }
+
+    return false;
+}
 
 void MainWindow::addPlusRow() {
     int row = ui->tableWidget->rowCount();

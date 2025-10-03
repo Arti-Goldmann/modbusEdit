@@ -17,7 +17,7 @@ class OutFileGenerator
 {
 public:
     OutFileGenerator();
-    bool generate();
+    bool generate(const QJsonArray& jsonArr, const QString& absGenPath);
 private:
 
     const QHash<QString, QString> TYPE_TO_IQ_FUNC = {

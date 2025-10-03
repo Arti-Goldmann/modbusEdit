@@ -2,49 +2,13 @@
 
 OutFileGenerator::OutFileGenerator() {}
 
-bool OutFileGenerator::generate() {
+bool OutFileGenerator::generate(const QJsonArray& jsonArr, const QString& absGenPath) {
 
-    //TODO: временно открываем профиль по захардкоженному пути
-    // Открытие файла
-    QFile profileFile{"D:/DATA/Documents/GitRep/MyRep/software/PC/modbusEdit/profile.json"};
-    if(!profileFile.open(QIODevice::ReadOnly)) {
-        showProfileError(QString("Не удалось открыть файл: %1\nОшибка: %2")
-                             .arg("D:/DATA/Documents/GitRep/MyRep/software/PC/modbusEdit/profile.json", profileFile.errorString()), "Ошибка загрузки профиля");
-        return false;
-    }
-
-    // Чтение файла
-    QByteArray byteArr = profileFile.readAll();
-    profileFile.close();
-
-    if (byteArr.isEmpty()) {
-        showProfileError("Файл profile.json пустой или не удалось прочитать данные", "Ошибка загрузки профиля");
-        return false;
-    }
-
-    // Парсинг JSON
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(byteArr, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        showProfileError(QString("Ошибка парсинга JSON:\n%1\nСтрока: %2")
-                             .arg(parseError.errorString(), QString::number(parseError.offset)), "Ошибка загрузки профиля");
-        return false;
-    }
-
-    if (!doc.isArray()) {
-        showProfileError("JSON файл должен содержать массив объектов", "Ошибка загрузки профиля");
-        return false;
-    }
-
-    QJsonArray jsonArr = doc.array();
-
-
-    QFile file("D:/DATA/Documents/GitRep/MyRep/software/PC/modbusEdit/outFile.c"); //TODO: временно беру захардкоженный путь
+    QFile file(absGenPath);
     file.open(QIODevice::WriteOnly | QIODevice::Text);
     QTextStream out(&file);
 
-     //TODO: coils и DI тоже сделать
+    //TODO: coils и DI тоже сделать
     //Формируем функцию на чтение для RW (Holding Registers RW)
     out << funcHandlerGen("MBhandlerHR_R", "RW", jsonArr, IQ_TO_TYPE_FUNC);
     //Формируем функцию на запись для RW (Holding Registers RW)
@@ -93,7 +57,7 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
             output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
                               .arg(FUNC[obj["dataType"].toString()],
                                    "varName", //TODO: varName
-                                   obj["range"].toString(),
+                                   obj["gain"].toString(),
                                    "base", //TODO: base
                                    "0" //TODO: Qbase
                                    )
