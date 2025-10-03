@@ -31,6 +31,7 @@ private:
         };
 
     QString funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& jsonArr, const QHash<QString, QString>& FUNC);
+    QString arrayGen(const QString& arrName, const QString&type, const QJsonArray& jsonArr);
     void showProfileError(const QString& message, const QString& title);
 };
 

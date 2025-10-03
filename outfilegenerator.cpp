@@ -44,32 +44,28 @@ bool OutFileGenerator::generate() {
     file.open(QIODevice::WriteOnly | QIODevice::Text);
     QTextStream out(&file);
 
-    //Формируем функцию на чтение
-    out << funcHandlerGen("MBhandler_R", "R", jsonArr, IQ_TO_TYPE_FUNC);
-    //Формируем функцию на запись
-    out << funcHandlerGen("MBhandler_W", "W", jsonArr, TYPE_TO_IQ_FUNC);
+     //TODO: coils и DI тоже сделать
+    //Формируем функцию на чтение для RW (Holding Registers RW)
+    out << funcHandlerGen("MBhandlerHR_R", "RW", jsonArr, IQ_TO_TYPE_FUNC);
+    //Формируем функцию на запись для RW (Holding Registers RW)
+    out << funcHandlerGen("MBhandlerHR_W", "RW", jsonArr, TYPE_TO_IQ_FUNC);
+    //Формируем функцию на чтение для R (Input Registers R)
+    out << funcHandlerGen("MBhandlerIR_R", "R", jsonArr, IQ_TO_TYPE_FUNC);
 
     out << "// R/W-переменные.\n";
-    out << "TModbusSlaveDictObj mbodHR[] =\n";
-    out << "    {\n";
-    out << "        0, 0xFFFF   // конец\n";
-    out << "    };\n";
-    out << "\n";
-    out << "// R-переменные (наблюдаемые).\n";
-    out << "TModbusSlaveDictObj mbodIR[] =\n";
-    out << "    {\n";
-    out << "        0, 0xFFFF   // конец\n";
-    out << "    };\n";
-    out << "\n";
+    out << arrayGen("mbodHR", "RW", jsonArr);
+    out << arrayGen("mbodIR", "R", jsonArr);
+
+    //TODO: coils и DI тоже сделать
     out << "TModbusSlaveDictObj mbodC[] =\n";
-    out << "    {\n";
-    out << "        0, 0xFFFF   // конец\n";
-    out << "    };\n";
+    out << "{\n";
+    out << "    0, 0xFFFF   // конец\n";
+    out << "};\n";
     out << "\n";
     out << "TModbusSlaveDictObj mbodDI[] =\n";
-    out << "    {\n";
-    out << "        0, 0xFFFF   // конец\n";
-    out << "    };\n";
+    out << "{\n";
+    out << "    0, 0xFFFF   // конец\n";
+    out << "};\n";
     out << "\n";
 
     file.close();
@@ -90,16 +86,16 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
 
         QJsonObject obj = val.toObject();
 
-        if(obj["accessType"] == type || obj["accessType"] == "RW") { //Нашли объект с нужным типом
+        if(obj["accessType"] == type) { //Нашли объект с нужным типом
             output.append(QString("\t\tcase %1:\n").arg(obj["addressDec"].toString().toInt())); //Пишем case и адрес регистра
 
             //Формируем функцию для этого case в соотвествии с полями json
             output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
                               .arg(FUNC[obj["dataType"].toString()],
-                                   "var",
+                                   "varName", //TODO: varName
                                    obj["range"].toString(),
-                                   "base",
-                                   "0"
+                                   "base", //TODO: base
+                                   "0" //TODO: Qbase
                                    )
                           );
 
@@ -109,5 +105,25 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
 
     //Конец
     output.append("\t\tdefault:\n\t\t\tbreak;\n\t}\n}\n\n");
+    return output;
+}
+
+QString OutFileGenerator::arrayGen(const QString& arrName, const QString&type, const QJsonArray& jsonArr) {
+    QString output;
+
+    //Начало массива
+    output.append("TModbusSlaveDictObj*" + arrName + "[]=\n\{\n");
+
+    for(const QJsonValue &val : std::as_const(jsonArr)) {
+
+        QJsonObject obj = val.toObject();
+
+        if(obj["accessType"] == type) { //Нашли объект с нужным типом
+            output.append("\t"+ QString(obj["addressDec"].toString()) + ", 0,   //varName\n"); //адрес регистра, 0, varName //TODO: название переменной тоже писать
+        }
+    }
+
+    //Конец
+    output.append("\t0, 0xFFFF   //конец\n};\n\n");
     return output;
 }

@@ -1,6 +1,6 @@
 [
     {
-        "accessType": "R",
+        "accessType": "RW",
         "addressDec": "1",
         "addressHex": "0xA0A0",
         "dataType": "int16",
@@ -11,7 +11,7 @@
         "units": "A"
     },
     {
-        "accessType": "W",
+        "accessType": "R",
         "addressDec": "2",
         "addressHex": "0xA0A0",
         "dataType": "int16",
@@ -44,7 +44,7 @@
         "units": "A"
     },
     {
-        "accessType": "W",
+        "accessType": "RW",
         "addressDec": "5",
         "addressHex": "0xA0A0",
         "dataType": "int16",
@@ -55,7 +55,7 @@
         "units": "A"
     },
     {
-        "accessType": "RW",
+        "accessType": "R",
         "addressDec": "6",
         "addressHex": "0xA0A0",
         "dataType": "int16",
