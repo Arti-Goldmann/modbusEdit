@@ -3,6 +3,7 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , outFileGenerator()
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
@@ -70,6 +71,8 @@ void MainWindow::setupUI(){
         "    border: 2px solid black;"
         "}"
         );
+
+    outFileGenerator.generate(); //TODO: временно тут, потом по нажатию кнопки
 
     connect(ui->open, &QAction::triggered,
             this, &MainWindow::readProfile);
@@ -211,7 +214,7 @@ bool MainWindow::saveAsProfile(){
     ui->fileLabel->setText(QString("Файл: %1").arg(fileInfo.fileName()));
 
     //Сохраняем профиль в файл
-    //Дошли сюда только в том случае, если пользователь согласился на перезапись
+    //Дошли сюда только в том случае, если пользователь согласился на перезапись, если таковая могла случиться
     return saveProfile();
 }
 

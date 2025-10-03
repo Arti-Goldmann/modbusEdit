@@ -14,6 +14,8 @@
 #include <QFileInfo>
 #include <QDir>
 
+#include "outfilegenerator.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -30,6 +32,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    OutFileGenerator outFileGenerator;
     void setupUI();
     void addPlusRow();
 
@@ -39,7 +42,7 @@ private:
 
     //Ключи json файла
     const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
-                                     "units", "range", "adressDec", "adressHex", "note"};
+                                     "units", "range", "addressDec", "addressHex", "note"};
 
     //Названия колонок таблицы
     const QStringList TABLE_HEADERS = {

@@ -1,8 +1,8 @@
 [
     {
         "accessType": "R",
-        "adressDec": "1000",
-        "adressHex": "0xA0A0",
+        "addressDec": "1",
+        "addressHex": "0xA0A0",
         "dataType": "int16",
         "gain": "0.1",
         "groupName": "test1",
@@ -11,9 +11,9 @@
         "units": "A"
     },
     {
-        "accessType": "R",
-        "adressDec": "1000",
-        "adressHex": "0xA0A0",
+        "accessType": "W",
+        "addressDec": "2",
+        "addressHex": "0xA0A0",
         "dataType": "int16",
         "gain": "0.2",
         "groupName": "test2",
@@ -22,9 +22,9 @@
         "units": "A"
     },
     {
-        "accessType": "R",
-        "adressDec": "1000",
-        "adressHex": "0xA0A0",
+        "accessType": "RW",
+        "addressDec": "3",
+        "addressHex": "0xA0A0",
         "dataType": "int16",
         "gain": "0.3",
         "groupName": "test3",
@@ -33,36 +33,36 @@
         "units": "A"
     },
     {
-        "accessType": "",
-        "adressDec": "",
-        "adressHex": "",
-        "dataType": "",
-        "gain": "",
-        "groupName": "test4",
-        "note": "",
-        "range": "",
-        "units": ""
+        "accessType": "R",
+        "addressDec": "4",
+        "addressHex": "0xA0A0",
+        "dataType": "int16",
+        "gain": "0.1",
+        "groupName": "test1",
+        "note": "test_note",
+        "range": "100",
+        "units": "A"
     },
     {
-        "accessType": "",
-        "adressDec": "",
-        "adressHex": "",
-        "dataType": "",
-        "gain": "",
-        "groupName": "",
-        "note": "",
-        "range": "",
-        "units": ""
+        "accessType": "W",
+        "addressDec": "5",
+        "addressHex": "0xA0A0",
+        "dataType": "int16",
+        "gain": "0.2",
+        "groupName": "test2",
+        "note": "test_note",
+        "range": "100",
+        "units": "A"
     },
     {
-        "accessType": "",
-        "adressDec": "",
-        "adressHex": "",
-        "dataType": "",
-        "gain": "",
-        "groupName": "test5",
-        "note": "",
-        "range": "",
-        "units": ""
+        "accessType": "RW",
+        "addressDec": "6",
+        "addressHex": "0xA0A0",
+        "dataType": "int16",
+        "gain": "0.3",
+        "groupName": "test3",
+        "note": "test_note",
+        "range": "100",
+        "units": "A"
     }
 ]
