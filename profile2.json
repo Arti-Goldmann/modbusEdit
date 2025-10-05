@@ -1,8 +1,8 @@
 [
     {
         "accessType": "",
-        "adressDec": "",
-        "adressHex": "",
+        "addressDec": "",
+        "addressHex": "",
         "dataType": "",
         "gain": "",
         "groupName": "test1",
@@ -12,8 +12,8 @@
     },
     {
         "accessType": "",
-        "adressDec": "",
-        "adressHex": "",
+        "addressDec": "",
+        "addressHex": "",
         "dataType": "",
         "gain": "",
         "groupName": "test2",
@@ -23,8 +23,8 @@
     },
     {
         "accessType": "",
-        "adressDec": "",
-        "adressHex": "",
+        "addressDec": "",
+        "addressHex": "",
         "dataType": "",
         "gain": "",
         "groupName": "",
@@ -34,11 +34,11 @@
     },
     {
         "accessType": "",
-        "adressDec": "",
-        "adressHex": "",
+        "addressDec": "",
+        "addressHex": "",
         "dataType": "",
         "gain": "",
-        "groupName": "",
+        "groupName": "test4",
         "note": "",
         "range": "",
         "units": ""

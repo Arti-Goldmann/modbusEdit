@@ -1,43 +1,75 @@
 #include "outfilegenerator.h"
 
-OutFileGenerator::OutFileGenerator() {}
+OutFileGenerator::OutFileGenerator(QWidget* parent) : parent(parent) {}
 
-bool OutFileGenerator::generate(const QJsonArray& jsonArr, const QString& absGenPath) {
+bool OutFileGenerator::setGenerationPath() {
 
-    QFile file(absGenPath);
-    file.open(QIODevice::WriteOnly | QIODevice::Text);
-    QTextStream out(&file);
+    QString lastDir = getLastDirectory();
+    QString fileGenDir = QFileDialog::getExistingDirectory(
+        parent,
+        QObject::tr("Выберите директорию"),
+        lastDir,
+        QFileDialog::ShowDirsOnly
+        );
 
-    //TODO: coils и DI тоже сделать
-    //Формируем функцию на чтение для RW (Holding Registers RW)
-    out << funcHandlerGen("MBhandlerHR_R", "RW", jsonArr, IQ_TO_TYPE_FUNC);
-    //Формируем функцию на запись для RW (Holding Registers RW)
-    out << funcHandlerGen("MBhandlerHR_W", "RW", jsonArr, TYPE_TO_IQ_FUNC);
-    //Формируем функцию на чтение для R (Input Registers R)
-    out << funcHandlerGen("MBhandlerIR_R", "R", jsonArr, IQ_TO_TYPE_FUNC);
+    if (fileGenDir.isEmpty()) {
+        setError("Директория генерации не найдена");
+        return false;
+    }
 
-    out << "// R/W-переменные.\n";
-    out << arrayGen("mbodHR", "RW", jsonArr);
-    out << arrayGen("mbodIR", "R", jsonArr);
+    // Нашли директорию
+    currentGenFilePath = fileGenDir + "/MBedit.c";
+    saveLastDirectory(currentGenFilePath);
 
-    //TODO: coils и DI тоже сделать
-    out << "TModbusSlaveDictObj mbodC[] =\n";
-    out << "{\n";
-    out << "    0, 0xFFFF   // конец\n";
-    out << "};\n";
-    out << "\n";
-    out << "TModbusSlaveDictObj mbodDI[] =\n";
-    out << "{\n";
-    out << "    0, 0xFFFF   // конец\n";
-    out << "};\n";
-    out << "\n";
-
-    file.close();
+    //TODO: в MainWindow
+    //ui->absPathToFileGenLabel->setText(QString("Путь генерации файла: %1").arg(fileInfo.absoluteFilePath()));
+    //ui->lineEditFieGenDir->setText(fileInfo.absolutePath());
+    //
     return true;
 }
 
-void OutFileGenerator::showProfileError(const QString& message, const QString& title) {
-    qCritical() << message;
+bool OutFileGenerator::generate(const QJsonArray& jsonArr, const QString& absGenPath) {
+    lastError.clear();
+
+    QFile file(absGenPath);
+    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
+        setError(QString("Не удалось открыть файл: %1\nОшибка: %2").arg(absGenPath, file.errorString()));
+        return false;
+    }
+
+    QTextStream out(&file);
+    try{
+        //TODO: coils и DI тоже сделать
+        //Формируем функцию на чтение для RW (Holding Registers RW)
+        out << funcHandlerGen("MBhandlerHR_R", "RW", jsonArr, IQ_TO_TYPE_FUNC);
+        //Формируем функцию на запись для RW (Holding Registers RW)
+        out << funcHandlerGen("MBhandlerHR_W", "RW", jsonArr, TYPE_TO_IQ_FUNC);
+        //Формируем функцию на чтение для R (Input Registers R)
+        out << funcHandlerGen("MBhandlerIR_R", "R", jsonArr, IQ_TO_TYPE_FUNC);
+
+        out << "// R/W-переменные.\n";
+        out << arrayGen("mbodHR", "RW", jsonArr);
+        out << arrayGen("mbodIR", "R", jsonArr);
+
+        //TODO: coils и DI тоже сделать
+        out << "TModbusSlaveDictObj mbodC[] =\n";
+        out << "{\n";
+        out << "    0, 0xFFFF   // конец\n";
+        out << "};\n";
+        out << "\n";
+        out << "TModbusSlaveDictObj mbodDI[] =\n";
+        out << "{\n";
+        out << "    0, 0xFFFF   // конец\n";
+        out << "};\n";
+        out << "\n";
+
+        file.close();
+    } catch (const std::exception& e) {
+        setError(QString("Ошибка при генерации: %1").arg(e.what()));
+        file.close();
+        return false;
+    }
+    return true;
 }
 
 QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& jsonArr, const QHash<QString, QString>& FUNC) {
@@ -90,4 +122,24 @@ QString OutFileGenerator::arrayGen(const QString& arrName, const QString&type, c
     //Конец
     output.append("\t0, 0xFFFF   //конец\n};\n\n");
     return output;
+}
+
+void OutFileGenerator::setError(const QString& message) {
+    lastError = message;
+}
+
+QString OutFileGenerator::getError() {
+    return lastError;
+}
+
+QString OutFileGenerator::getLastDirectory() const {
+    QSettings settings("MPEI", "modbusEdit");
+    QString lastDir = settings.value("lastDirFileGen", QDir::homePath()).toString();
+    return lastDir;
+}
+
+void OutFileGenerator::saveLastDirectory(const QString& path) {
+    QSettings settings("MPEI", "modbusEdit");
+    QFileInfo fileInfo(path);
+    settings.setValue("lastDirFileGen", fileInfo.absolutePath());
 }

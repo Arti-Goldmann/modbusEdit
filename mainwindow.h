@@ -15,6 +15,7 @@
 #include <QDir>
 
 #include "outfilegenerator.h"
+#include "jsonprofilemanager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -33,18 +34,12 @@ public:
 private:
     Ui::MainWindow *ui;
     OutFileGenerator outFileGenerator;
+    JsonProfileManager jsonProfileManager;
     void setupUI();
     void addPlusRow();
-
-    QString activeProfilePath = ""; //Путь до активного профиля
-    QString activeFileGenPath = ""; //Путь до файла генерации
     
-    void showProfileError(const QString& message, const QString& title = "Ошибка профиля");
-    QJsonArray readJson(const QString& profilePath);
-
-    //Ключи json файла
-    const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
-                                     "units", "range", "addressDec", "addressHex", "note"};
+    void processError(const QString& message, const QString& title);
+    bool saveProfileHandler(bool isSaveAs);
 
     //Названия колонок таблицы
     const QStringList TABLE_HEADERS = {
@@ -58,10 +53,10 @@ private:
 private slots:
     void onSelectionChanged();
     void onCellClicked(int row, int col);
-    bool readProfile();
+    bool loadProfile();
     bool saveProfile();
-    bool saveAsProfile();
+    bool saveProfileAs();
     bool startGeneration();
-    bool getGenerationPath();
+    bool setGenerationPath();
 };
 #endif // MAINWINDOW_H
