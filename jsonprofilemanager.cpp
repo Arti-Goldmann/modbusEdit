@@ -93,7 +93,7 @@ std::optional<QJsonArray> JsonProfileManager::readJsonData(const QString& filePa
     return rootObj["data"].toArray();
 }
 
-std::optional<QJsonObject> JsonProfileManager::readJsonBaseValues(const QString& filePath) {
+std::optional<QJsonArray> JsonProfileManager::readJsonBaseValues(const QString& filePath) {
     lastError.clear();
 
     auto rootObjOpt = readJsonObj(filePath);
@@ -104,15 +104,15 @@ std::optional<QJsonObject> JsonProfileManager::readJsonBaseValues(const QString&
     QJsonObject rootObj = rootObjOpt.value();
 
     // Проверка наличия поля с данными
-    if (!rootObj.contains("baseValues") || !rootObj["baseValues"].isObject()) {
+    if (!rootObj.contains("baseValues") || !rootObj["baseValues"].isArray()) {
         setError("JSON файл должен содержать поле 'baseValues' с базовыми величинами");
         return std::nullopt;
     }
 
-    return rootObj["baseValues"].toObject();
+    return rootObj["baseValues"].toArray();
 }
 
-bool JsonProfileManager::saveProfileAs(QTableWidget* table){
+bool JsonProfileManager::saveProfileAs(QTableWidget* tableData, QTableWidget* tableBaseValues){
     lastError.clear();
 
     QString lastDir = getLastDirectory();
@@ -133,26 +133,39 @@ bool JsonProfileManager::saveProfileAs(QTableWidget* table){
 
     //Сохраняем профиль в файл
     //Дошли сюда только в том случае, если пользователь согласился на перезапись, если таковая могла случиться
-    return saveProfile(table);
+    return saveProfile(tableData, tableBaseValues);
 }
 
 
-bool JsonProfileManager::saveProfile(QTableWidget* table){
+bool JsonProfileManager::saveProfile(QTableWidget* tableData, QTableWidget* tableBaseValues){
     lastError.clear();
 
-    QJsonArray jsonArr;
+    QJsonArray data;
+    QJsonArray baseValues;
 
     //Проходим по всем строкам таблицы, кроме последней, потому что там строка с "+"
-    for(int rowCounter = 0; rowCounter < table->rowCount() - 1; rowCounter++) {
+    for(int rowCounter = 0; rowCounter < tableData->rowCount() - 1; rowCounter++) {
         //Проходим по всем колонкам таблицы и сохраняем в соответсвующий ключ json
         QJsonObject obj;
 
         for(int col = 0; col < COLUMN_KEYS.size(); col++) {
-            QTableWidgetItem* item = table->item(rowCounter, col);
+            QTableWidgetItem* item = tableData->item(rowCounter, col);
             obj[COLUMN_KEYS[col]] = item ? item->text() : "";
         }
 
-        jsonArr.append(obj);
+        data.append(obj);
+    }
+
+    for(int rowCounter = 0; rowCounter < tableBaseValues->rowCount() - 1; rowCounter++) {
+        //Проходим по всем колонкам таблицы и сохраняем в соответсвующий ключ json
+        QJsonObject obj;
+
+        for(int col = 0; col < BASE_VALUES_KEYS.size(); col++) {
+            QTableWidgetItem* item = tableBaseValues->item(rowCounter, col);
+            obj[BASE_VALUES_KEYS[col]] = item ? item->text() : "";
+        }
+
+        baseValues.append(obj);
     }
 
     QString profilePath = currentProfilePath;
@@ -170,15 +183,8 @@ bool JsonProfileManager::saveProfile(QTableWidget* table){
         }
 
         QJsonObject rootObj;
-
-        //TODO: пока что создаются коэффициенты тут
-        QJsonObject baseValues;
-        baseValues["base1"] = 1.1;
-        baseValues["base2"] = 1.2;
-        baseValues["base3"] = 1.3;
-
         rootObj["baseValues"] = baseValues;
-        rootObj["data"] = jsonArr;
+        rootObj["data"] = data;
 
         QJsonDocument doc(rootObj);
         QByteArray byteArr = doc.toJson(QJsonDocument::Indented);
@@ -200,7 +206,7 @@ bool JsonProfileManager::saveProfile(QTableWidget* table){
         file.close();
     } else {
         //Если профиль никакой не открыли еще и просто вносили изменения в исходной таблице, то нужно его "Cохранить как"
-        return saveProfileAs(table);
+        return saveProfileAs(tableData, tableBaseValues);
     }
 
     return true;

@@ -37,7 +37,7 @@ private:
     JsonProfileManager jsonProfileManager;
     void setupUI();
     void setupTable(QTableWidget*);
-    void addPlusRow();
+    void addPlusRow(QTableWidget*);
     
     void processError(const QString& message, const QString& title);
     bool saveProfileHandler(bool isSaveAs);
@@ -52,8 +52,8 @@ private:
 
     //Названия колонок таблицы с базовыми величинами
     const QStringList BASE_VALUES_HEADERS = {
-        "Базовая величина",
-        "Значение",
+        "Название базовой величины", "Единицы",
+        "Формат IQ", "Переменная/значение", "Примечание"
     };
 
 

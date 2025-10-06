@@ -1,9 +1,27 @@
 {
-    "baseValues": {
-        "base1": 1.1,
-        "base2": 1.2,
-        "base3": 1.3
-    },
+    "baseValues": [
+        {
+            "IQformat": "16.0",
+            "baseName": "Номинальный ток",
+            "baseValue": "drv_params.Inom",
+            "note": "test1",
+            "units": "A"
+        },
+        {
+            "IQformat": "16.0",
+            "baseName": "Номинальное напряжение",
+            "baseValue": "drv_params.Unom",
+            "note": "test2",
+            "units": "В"
+        },
+        {
+            "IQformat": "16.0",
+            "baseName": "Номинальная скорость",
+            "baseValue": "drv_params.speed_nom",
+            "note": "test3",
+            "units": "об/мин"
+        }
+    ],
     "data": [
         {
             "accessType": "RW",

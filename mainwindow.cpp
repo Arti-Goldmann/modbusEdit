@@ -51,15 +51,20 @@ void MainWindow::setupUI(){
     ui->tableWidget->setColumnWidth(8, 150);  // Примечание
 
     setupTable(ui->tableWidget);
-    addPlusRow(); //Добавляем последнюю строку с плюсиком
+    addPlusRow(ui->tableWidget); //Добавляем последнюю строку с плюсиком
 
     //Настройки таблицы с базовыми величинами
     ui->tableWidgetBaseValues->setColumnCount(BASE_VALUES_HEADERS.size());
     ui->tableWidgetBaseValues->setHorizontalHeaderLabels(BASE_VALUES_HEADERS);
 
-    ui->tableWidgetBaseValues->setColumnWidth(0, 500);
-    ui->tableWidgetBaseValues->setColumnWidth(1, 500);
+    ui->tableWidgetBaseValues->setColumnWidth(0, 300);
+    ui->tableWidgetBaseValues->setColumnWidth(1, 70);
+    ui->tableWidgetBaseValues->setColumnWidth(2, 70);
+    ui->tableWidgetBaseValues->setColumnWidth(3, 200);
+    ui->tableWidgetBaseValues->setColumnWidth(4, 300);
+
     setupTable(ui->tableWidgetBaseValues);
+    addPlusRow(ui->tableWidgetBaseValues); //Добавляем последнюю строку с плюсиком
 
     connect(ui->toolBtnGenPath, &QPushButton::clicked,
             this, &MainWindow::setGenerationPath);
@@ -80,6 +85,9 @@ void MainWindow::setupUI(){
             this, &MainWindow::onSelectionChanged);
 
     connect(ui->tableWidget, &QTableWidget::cellClicked,
+            this, &MainWindow::onCellClicked);
+
+    connect(ui->tableWidgetBaseValues, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClicked);
 }
 
@@ -132,14 +140,14 @@ bool MainWindow::loadProfile() {
         return false;
     }
 
-    QJsonArray jsonArr = profileResultOpt.value().data;
-    QJsonObject baseValues = profileResultOpt.value().baseValues;
+    QJsonArray data = profileResultOpt.value().data;
+    QJsonArray baseValues = profileResultOpt.value().baseValues;
 
     // Заполняем таблицу с данными
     ui->tableWidget->setRowCount(0);
 
     int rowCounter = 0;
-    for(const QJsonValue &val : std::as_const(jsonArr)) {
+    for(const QJsonValue &val : std::as_const(data)) {
 
         QJsonObject obj = val.toObject();
 
@@ -154,26 +162,28 @@ bool MainWindow::loadProfile() {
         rowCounter++;
     }
 
-    addPlusRow(); //Добавляем последнюю строку с плюсиком
+    addPlusRow(ui->tableWidget); //Добавляем последнюю строку с плюсиком
 
     // Заполняем таблицу с базовыми величинами
     ui->tableWidgetBaseValues->setRowCount(0);
 
     rowCounter = 0;
-    for (auto it = baseValues.begin(); it != baseValues.end(); ++it) {
-        QString key = it.key();              // Имя ключа
-        QJsonValue value = it.value();       // Значение
-        double doubleValue = value.toDouble(); // Преобразование в double
+    for(const QJsonValue &val : std::as_const(baseValues)) {
+
+        QJsonObject obj = val.toObject();
 
         // Добавляем строку в таблицу
         ui->tableWidgetBaseValues->insertRow(rowCounter);
 
-        ui->tableWidgetBaseValues->setItem(rowCounter, 0, new QTableWidgetItem(key));
-        ui->tableWidgetBaseValues->setItem(rowCounter, 1, new QTableWidgetItem(QString::number(doubleValue)));
-
+        //Получаем строку из объекта json и кладем в соответсвующую колонку
+        for(int col = 0; col < jsonProfileManager.BASE_VALUES_KEYS.size(); col++) {
+            QString str = obj[jsonProfileManager.BASE_VALUES_KEYS[col]].toString();
+            ui->tableWidgetBaseValues->setItem(rowCounter, col, new QTableWidgetItem(str));
+        }
         rowCounter++;
-        qDebug() << key << "=" << doubleValue;
     }
+
+    addPlusRow(ui->tableWidgetBaseValues); //Добавляем последнюю строку с плюсиком
 
     QString profilePath = jsonProfileManager.getCurrentProfilePath();
     QFileInfo fileInfo(profilePath);
@@ -194,8 +204,8 @@ bool MainWindow::saveProfileAs() {
 
 bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
-    bool result = isSaveAs ? jsonProfileManager.saveProfileAs(ui->tableWidget) :
-                             jsonProfileManager.saveProfile(ui->tableWidget);
+    bool result = isSaveAs ? jsonProfileManager.saveProfileAs(ui->tableWidget, ui->tableWidgetBaseValues) :
+                             jsonProfileManager.saveProfile(ui->tableWidget, ui->tableWidgetBaseValues);
 
     if(result) {
         QString profilePath = jsonProfileManager.getCurrentProfilePath();
@@ -241,12 +251,12 @@ bool MainWindow::startGeneration(){
     return true;
 }
 
-void MainWindow::addPlusRow() {
-    int row = ui->tableWidget->rowCount();
-    ui->tableWidget->insertRow(row);
+void MainWindow::addPlusRow(QTableWidget* table) {
+    int row = table->rowCount();
+    table->insertRow(row);
 
     // Объединить все столбцы в одну ячейку
-    ui->tableWidget->setSpan(row, 0, 1, 9); // row, column, rowSpan, columnSpan
+    table->setSpan(row, 0, 1, table->columnCount()); // row, column, rowSpan, columnSpan
 
     // Создать элемент с плюсиком
     QTableWidgetItem *item = new QTableWidgetItem(" +");
@@ -262,7 +272,7 @@ void MainWindow::addPlusRow() {
     // Сделать нередактируемой
     item->setFlags(item->flags() & ~Qt::ItemIsEditable);
 
-    ui->tableWidget->setItem(row, 0, item);
+    table->setItem(row, 0, item);
 }
 
 void MainWindow::onSelectionChanged(){
@@ -275,6 +285,11 @@ void MainWindow::onCellClicked(int row, int col)
     if (row == ui->tableWidget->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
         ui->tableWidget->insertRow(row);
+    }
+
+    if (row == ui->tableWidgetBaseValues->rowCount() - 1) {
+        // Клик по последней строке - вставляем новую ПЕРЕД ней
+        ui->tableWidgetBaseValues->insertRow(row);
     }
 }
 

@@ -21,18 +21,18 @@ public:
 
     typedef struct {
         QJsonArray  data;
-        QJsonObject baseValues;
+        QJsonArray  baseValues;
     } TProfileResult;
 
     // Основные операции с профилями
     std::optional<TProfileResult> loadProfile(); // Диалог + загрузка
-    bool saveProfile(QTableWidget* table);   // Сохранить в текущий файл
-    bool saveProfileAs(QTableWidget* table); // Сохранить как...
+    bool saveProfile(QTableWidget* tableData, QTableWidget* tableBaseValues);   // Сохранить в текущий файл
+    bool saveProfileAs(QTableWidget* tableData, QTableWidget* tableBaseValues); // Сохранить как...
 
     std::optional<QJsonArray> readJsonData(const QString& filePath);
     std::optional<QJsonArray> readJsonData() {return readJsonData(currentProfilePath);};
-    std::optional<QJsonObject> readJsonBaseValues(const QString& filePath);
-    std::optional<QJsonObject> readJsonBaseValues() {return readJsonBaseValues(currentProfilePath);};
+    std::optional<QJsonArray> readJsonBaseValues(const QString& filePath);
+    std::optional<QJsonArray> readJsonBaseValues() {return readJsonBaseValues(currentProfilePath);};
 
     // Валидация
     bool validateProfile(const QJsonArray& data);
@@ -45,6 +45,8 @@ public:
     //Ключи json файла
     const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
                                      "units", "range", "addressDec", "addressHex", "note"};
+
+    const QStringList BASE_VALUES_KEYS = {"baseName", "units", "IQformat", "baseValue", "note"};
 
 private:
     QWidget* parent;
