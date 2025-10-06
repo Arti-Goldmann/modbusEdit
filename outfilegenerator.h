@@ -21,7 +21,7 @@ class OutFileGenerator
 public:
     OutFileGenerator(QWidget* parent);
     bool setGenerationPath();
-    QString getError();
+    QString getLastError();
     QString getCurrentGenFilePath() const { return currentGenFilePath; }
     bool hasActiveGenFile() const { return !currentGenFilePath.isEmpty(); }
 
@@ -33,6 +33,11 @@ private:
     QString getLastDirectory() const;
     void saveLastDirectory(const QString& path);
 
+    typedef enum {
+        FOR_READ,
+        FOR_WRITE,
+    } TdirectionType;
+
     const QHash<QString, QString> TYPE_TO_IQ_FUNC = {
         {"int16",  "Int16toIQ"},
         {"Uint16", "UInt16toIQ"},
@@ -43,7 +48,9 @@ private:
         {"Uint16", "IQtoUInt16"},
         };
 
-    QString funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& jsonArr, const QHash<QString, QString>& FUNC);
+    QString funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& jsonArr, TdirectionType readOrWrite);
+    QString funcHandlerGen_R(const QString& funcName, const QJsonObject& obj);
+    QString funcHandlerGen_W(const QString& funcName, const QJsonObject& obj);
     QString arrayGen(const QString& arrName, const QString&type, const QJsonArray& jsonArr);
     void setError(const QString& message);
 };

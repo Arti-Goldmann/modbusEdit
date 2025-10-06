@@ -6,7 +6,7 @@ void MBhandlerHR_R(TModbusSlaveDictObj* reg)
 			reg->data = IQtoInt16(varName,0.1,base,0);
 			break;
 		case 3:
-			reg->data = IQtoInt16(varName,0.3,base,0);
+			reg->data = IQtoUInt16(varName,0.3,base,0);
 			break;
 		case 5:
 			reg->data = IQtoInt16(varName,0.2,base,0);
@@ -21,13 +21,13 @@ void MBhandlerHR_W(TModbusSlaveDictObj* reg)
 	switch (reg->mbIndex)
 	{
 		case 1:
-			reg->data = Int16toIQ(varName,0.1,base,0);
+			varName = Int16toIQ(reg->data,0.1,base,0);
 			break;
 		case 3:
-			reg->data = Int16toIQ(varName,0.3,base,0);
+			varName = UInt16toIQ(reg->data,0.3,base,0);
 			break;
 		case 5:
-			reg->data = Int16toIQ(varName,0.2,base,0);
+			varName = Int16toIQ(reg->data,0.2,base,0);
 			break;
 		default:
 			break;
@@ -45,7 +45,7 @@ void MBhandlerIR_R(TModbusSlaveDictObj* reg)
 			reg->data = IQtoInt16(varName,0.1,base,0);
 			break;
 		case 6:
-			reg->data = IQtoInt16(varName,0.3,base,0);
+			reg->data = IQtoUInt16(varName,0.3,base,0);
 			break;
 		default:
 			break;

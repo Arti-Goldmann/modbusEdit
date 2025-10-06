@@ -24,6 +24,7 @@ public:
     bool saveProfile(QTableWidget* table);   // Сохранить в текущий файл
     bool saveProfileAs(QTableWidget* table); // Сохранить как...
     std::optional<QJsonArray> readJsonFile(const QString& filePath);
+    std::optional<QJsonArray> readJsonFile() {return readJsonFile(currentProfilePath);};
 
     // Валидация
     bool validateProfile(const QJsonArray& data);

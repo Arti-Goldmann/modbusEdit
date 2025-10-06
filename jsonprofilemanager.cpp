@@ -81,9 +81,6 @@ bool JsonProfileManager::saveProfileAs(QTableWidget* table){
     // Сохранить директорию для следующего раза
     saveLastDirectory(currentProfilePath);
 
-    //TODO: это пересети в MainWindow
-    //ui->fileLabel->setText(QString("Файл: %1").arg(fileInfo.fileName()));
-
     //Сохраняем профиль в файл
     //Дошли сюда только в том случае, если пользователь согласился на перезапись, если таковая могла случиться
     return saveProfile(table);
@@ -145,8 +142,6 @@ bool JsonProfileManager::saveProfile(QTableWidget* table){
         return saveProfileAs(table);
     }
 
-    //TODO: в MainWindow
-    //statusBar()->showMessage("Файл успешно сохранен", 5000);
     return true;
 }
 

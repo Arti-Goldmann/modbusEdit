@@ -103,7 +103,7 @@ bool MainWindow::setGenerationPath() {
         ui->absPathToFileGenLabel->setText(QString("Путь генерации файла: %1").arg(fileInfo.absoluteFilePath()));
         ui->lineEditFieGenDir->setText(fileInfo.absolutePath());
     } else {
-        processError(jsonProfileManager.getLastError(), "Ошибка установки пути файла генерации");
+        processError(outFileGenerator.getLastError(), "Ошибка генерации файла");
         return false;
     }
 
@@ -179,10 +179,10 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
 bool MainWindow::startGeneration(){
 
-    auto optionalDataJsonArr = jsonProfileManager.readJsonFile(jsonProfileManager.getCurrentProfilePath());
+    auto optionalDataJsonArr = jsonProfileManager.readJsonFile();
 
     if (!optionalDataJsonArr.has_value()) {
-        processError(jsonProfileManager.getLastError(), "Ошибка загрузки профиля");
+        processError(jsonProfileManager.getLastError(), "Ошибка генерации файла");
         return false;
     }
 
@@ -201,7 +201,7 @@ bool MainWindow::startGeneration(){
     if(outFileGenerator.generate(jsonArr, outFileGenerator.getCurrentGenFilePath())) {
         statusBar()->showMessage("Файл успешно сгенерирован", 5000);
     } else {
-        processError(outFileGenerator.getError(), "Ошибка генерации файла");
+        processError(outFileGenerator.getLastError(), "Ошибка генерации файла");
         return false;
     }
 
