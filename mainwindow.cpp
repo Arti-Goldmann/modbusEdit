@@ -35,6 +35,7 @@ void MainWindow::setupUI(){
     setWindowTitle("modbusEdit");
     setWindowIcon(QIcon(":/ModBus.ico"));
 
+    //Настройки таблицы с данными
     ui->tableWidget->setColumnCount(TABLE_HEADERS.size());
     ui->tableWidget->setHorizontalHeaderLabels(TABLE_HEADERS);
 
@@ -49,29 +50,16 @@ void MainWindow::setupUI(){
     ui->tableWidget->setColumnWidth(7, 80);   // Адрес (hex.)
     ui->tableWidget->setColumnWidth(8, 150);  // Примечание
 
-    //Настройка высоты строк
-    ui->tableWidget->verticalHeader()->setDefaultSectionSize(30);
-    ui->tableWidget->verticalHeader()->setFixedWidth(40);
-    ui->tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed); //Нельзя менять высоту строки
-    ui->tableWidget->verticalHeader()->setDefaultAlignment(Qt::AlignCenter); //Выравнивание по центру
-    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectItems); //Поведение при выделении ячейки
-    ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection); //Только одна ячейка
-    ui->tableWidget->setAlternatingRowColors(true); //Делает строку черно-белой через одну
-    ui->tableWidget->horizontalHeader()->setStretchLastSection(true); //Растягивает последний столбец на всю оставшуюся ширину таблицы
-
+    setupTable(ui->tableWidget);
     addPlusRow(); //Добавляем последнюю строку с плюсиком
 
-    //Настройка стиля
-    ui->tableWidget->setStyleSheet(
-        "QHeaderView::section {"
-        "    border: 1px solid black;"
-        "}"
-        "QTableWidget::item:selected {"
-        "    background-color: transparent;"
-        "    selection-background-color: transparent;"
-        "    border: 2px solid black;"
-        "}"
-        );
+    //Настройки таблицы с базовыми величинами
+    ui->tableWidgetBaseValues->setColumnCount(BASE_VALUES_HEADERS.size());
+    ui->tableWidgetBaseValues->setHorizontalHeaderLabels(BASE_VALUES_HEADERS);
+
+    ui->tableWidgetBaseValues->setColumnWidth(0, 500);
+    ui->tableWidgetBaseValues->setColumnWidth(1, 500);
+    setupTable(ui->tableWidgetBaseValues);
 
     connect(ui->toolBtnGenPath, &QPushButton::clicked,
             this, &MainWindow::setGenerationPath);
@@ -95,6 +83,31 @@ void MainWindow::setupUI(){
             this, &MainWindow::onCellClicked);
 }
 
+void MainWindow::setupTable(QTableWidget* table) {
+
+    //Настройка высоты строк
+    table->verticalHeader()->setDefaultSectionSize(30);
+    table->verticalHeader()->setFixedWidth(40);
+    table->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed); //Нельзя менять высоту строки
+    table->verticalHeader()->setDefaultAlignment(Qt::AlignCenter); //Выравнивание по центру
+    table->setSelectionBehavior(QAbstractItemView::SelectItems); //Поведение при выделении ячейки
+    table->setSelectionMode(QAbstractItemView::SingleSelection); //Только одна ячейка
+    table->setAlternatingRowColors(true); //Делает строку черно-белой через одну
+    table->horizontalHeader()->setStretchLastSection(true); //Растягивает последний столбец на всю оставшуюся ширину таблицы
+
+    //Настройка стиля
+    table->setStyleSheet(
+        "QHeaderView::section {"
+        "    border: 1px solid black;"
+        "}"
+        "QTableWidget::item:selected {"
+        "    background-color: transparent;"
+        "    selection-background-color: transparent;"
+        "    border: 2px solid black;"
+        "}"
+        );
+}
+
 bool MainWindow::setGenerationPath() {
 
     if(outFileGenerator.setGenerationPath()) {
@@ -112,16 +125,17 @@ bool MainWindow::setGenerationPath() {
 
 bool MainWindow::loadProfile() {
 
-    auto optionalDataJsonArr = jsonProfileManager.loadProfile();
+    auto profileResultOpt = jsonProfileManager.loadProfile();
 
-    if (!optionalDataJsonArr.has_value()) {
+    if (!profileResultOpt.has_value()) {
         processError(jsonProfileManager.getLastError(), "Ошибка загрузки профиля");
         return false;
     }
 
-    QJsonArray jsonArr = optionalDataJsonArr.value();
+    QJsonArray jsonArr = profileResultOpt.value().data;
+    QJsonObject baseValues = profileResultOpt.value().baseValues;
 
-    // Очищаем таблицу
+    // Заполняем таблицу с данными
     ui->tableWidget->setRowCount(0);
 
     int rowCounter = 0;
@@ -141,6 +155,25 @@ bool MainWindow::loadProfile() {
     }
 
     addPlusRow(); //Добавляем последнюю строку с плюсиком
+
+    // Заполняем таблицу с базовыми величинами
+    ui->tableWidgetBaseValues->setRowCount(0);
+
+    rowCounter = 0;
+    for (auto it = baseValues.begin(); it != baseValues.end(); ++it) {
+        QString key = it.key();              // Имя ключа
+        QJsonValue value = it.value();       // Значение
+        double doubleValue = value.toDouble(); // Преобразование в double
+
+        // Добавляем строку в таблицу
+        ui->tableWidgetBaseValues->insertRow(rowCounter);
+
+        ui->tableWidgetBaseValues->setItem(rowCounter, 0, new QTableWidgetItem(key));
+        ui->tableWidgetBaseValues->setItem(rowCounter, 1, new QTableWidgetItem(QString::number(doubleValue)));
+
+        rowCounter++;
+        qDebug() << key << "=" << doubleValue;
+    }
 
     QString profilePath = jsonProfileManager.getCurrentProfilePath();
     QFileInfo fileInfo(profilePath);
@@ -179,7 +212,7 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
 bool MainWindow::startGeneration(){
 
-    auto optionalDataJsonArr = jsonProfileManager.readJsonFile();
+    auto optionalDataJsonArr = jsonProfileManager.readJsonData();
 
     if (!optionalDataJsonArr.has_value()) {
         processError(jsonProfileManager.getLastError(), "Ошибка генерации файла");

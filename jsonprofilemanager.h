@@ -19,12 +19,20 @@ class JsonProfileManager
 public:
     explicit JsonProfileManager(QWidget* parent);
 
+    typedef struct {
+        QJsonArray  data;
+        QJsonObject baseValues;
+    } TProfileResult;
+
     // Основные операции с профилями
-    std::optional<QJsonArray> loadProfile();// Диалог + загрузка
+    std::optional<TProfileResult> loadProfile(); // Диалог + загрузка
     bool saveProfile(QTableWidget* table);   // Сохранить в текущий файл
     bool saveProfileAs(QTableWidget* table); // Сохранить как...
-    std::optional<QJsonArray> readJsonFile(const QString& filePath);
-    std::optional<QJsonArray> readJsonFile() {return readJsonFile(currentProfilePath);};
+
+    std::optional<QJsonArray> readJsonData(const QString& filePath);
+    std::optional<QJsonArray> readJsonData() {return readJsonData(currentProfilePath);};
+    std::optional<QJsonObject> readJsonBaseValues(const QString& filePath);
+    std::optional<QJsonObject> readJsonBaseValues() {return readJsonBaseValues(currentProfilePath);};
 
     // Валидация
     bool validateProfile(const QJsonArray& data);
@@ -46,6 +54,7 @@ private:
     // Внутренние методы
     bool writeJsonFile(const QString& filePath, const QJsonArray& data);
     void setError(const QString& error) { lastError = error; }
+    std::optional<QJsonObject> readJsonObj(const QString& filePath);
 
     // Работа с настройками
     QString getLastDirectory() const;

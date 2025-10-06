@@ -36,17 +36,24 @@ private:
     OutFileGenerator outFileGenerator;
     JsonProfileManager jsonProfileManager;
     void setupUI();
+    void setupTable(QTableWidget*);
     void addPlusRow();
     
     void processError(const QString& message, const QString& title);
     bool saveProfileHandler(bool isSaveAs);
 
-    //Названия колонок таблицы
+    //Названия колонок таблицы с данными
     const QStringList TABLE_HEADERS = {
         "Название группы параметров / параметра",
         "Тип доступа", "Тип данных", "Коэффициент",
         "Ед. изм.", "Диапазон значений",
         "Адрес (дес.)", "Адрес (hex.)", "Примечание"
+    };
+
+    //Названия колонок таблицы с базовыми величинами
+    const QStringList BASE_VALUES_HEADERS = {
+        "Базовая величина",
+        "Значение",
     };
 
 
