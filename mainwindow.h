@@ -16,6 +16,8 @@
 
 #include "outfilegenerator.h"
 #include "jsonprofilemanager.h"
+#include "comboboxdelegate.h"
+#include "dynamiccomboboxdelegate.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -48,6 +50,12 @@ private:
     
     int contextMenuClickRow = -1;
     QTableWidget* contextMenuActiveTable = nullptr;
+    
+    // Делегаты для комбобоксов
+    ComboBoxDelegate *accessTypeDelegate;
+    ComboBoxDelegate *dataTypeDelegate;
+    DynamicComboBoxDelegate *baseValueDelegate;
+    ComboBoxDelegate *iqFormatDelegate;
 
     //Названия колонок таблицы с данными
     const QStringList TABLE_HEADERS = {
@@ -74,5 +82,6 @@ private slots:
     bool setGenerationPath();
     void showContextMenu(const QPoint &pos);
     void showContextMenuBaseValues(const QPoint &pos);
+    void onBaseValuesChanged();
 };
 #endif // MAINWINDOW_H

@@ -120,7 +120,7 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
                            obj["varName"].toString(),
                            obj["gain"].toString(),
                            baseValue,
-                           IQformat
+                           IQformatToBaseQ(IQformat)
                            )
                   );
 
@@ -136,7 +136,7 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
                            obj["varName"].toString(),
                            obj["gain"].toString(),
                            baseValue,
-                           IQformat
+                           IQformatToBaseQ(IQformat)
                            )
                   );
 
@@ -181,4 +181,12 @@ void OutFileGenerator::saveLastDirectory(const QString& path) {
     QSettings settings("MPEI", "modbusEdit");
     QFileInfo fileInfo(path);
     settings.setValue("lastDirFileGen", fileInfo.absolutePath());
+}
+
+QString OutFileGenerator::IQformatToBaseQ(const QString& str) {
+    int dotIndex = str.indexOf('.');
+    if (dotIndex == -1) {
+        return "0";  // Нет точки - дробная часть = 0
+    }
+    return str.mid(dotIndex + 1);  // Всё после точки
 }

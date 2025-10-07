@@ -53,6 +53,20 @@ void MainWindow::setupUI(){
 
     setupTable(ui->tableWidget);
     addPlusRow(ui->tableWidget); //Добавляем последнюю строку с плюсиком
+    
+    // Настройка делегатов для комбобоксов
+    QStringList accessTypes = {"RW", "R"};
+    accessTypeDelegate = new ComboBoxDelegate(accessTypes, this);
+    
+    QStringList dataTypes = {"int16", "Uint16"};
+    dataTypeDelegate = new ComboBoxDelegate(dataTypes, this);
+    
+    baseValueDelegate = new DynamicComboBoxDelegate(ui->tableWidgetBaseValues, 0, this);
+    
+    // Устанавливаем делегаты для соответствующих столбцов
+    ui->tableWidget->setItemDelegateForColumn(1, accessTypeDelegate);  // Тип доступа
+    ui->tableWidget->setItemDelegateForColumn(2, dataTypeDelegate);    // Тип данных
+    ui->tableWidget->setItemDelegateForColumn(7, baseValueDelegate);   // Базовая величина
 
     //Настройки таблицы с базовыми величинами
     ui->tableWidgetBaseValues->setColumnCount(BASE_VALUES_HEADERS.size());
@@ -67,6 +81,16 @@ void MainWindow::setupUI(){
 
     setupTable(ui->tableWidgetBaseValues);
     addPlusRow(ui->tableWidgetBaseValues); //Добавляем последнюю строку с плюсиком
+    
+    // Создаем делегат для формата IQ
+    QStringList iqFormats;
+    for(int i = 16; i >= 0; --i) {
+        iqFormats << QString("%1.%2").arg(i).arg(16 - i);
+    }
+    iqFormatDelegate = new ComboBoxDelegate(iqFormats, this);
+    
+    // Устанавливаем делегат для столбца "Формат IQ"
+    ui->tableWidgetBaseValues->setItemDelegateForColumn(2, iqFormatDelegate);
 
     connect(ui->toolBtnGenPath, &QPushButton::clicked,
             this, &MainWindow::setGenerationPath);
@@ -97,6 +121,10 @@ void MainWindow::setupUI(){
 
     connect(ui->tableWidgetBaseValues, &QTableWidget::customContextMenuRequested,
             this, &MainWindow::showContextMenuBaseValues);
+
+    // Подключаем автообновление базовых величин
+    connect(ui->tableWidgetBaseValues, &QTableWidget::itemChanged,
+            this, &MainWindow::onBaseValuesChanged);
 }
 
 void MainWindow::setupTable(QTableWidget* table) {
@@ -354,4 +382,12 @@ void MainWindow::addRow()
         int rowCount = contextMenuActiveTable->rowCount();
         contextMenuActiveTable->insertRow(rowCount - 1);
     }
+}
+
+void MainWindow::onBaseValuesChanged()
+{
+    // Пересоздаем делегат для базовых величин с обновленными данными
+    delete baseValueDelegate;
+    baseValueDelegate = new DynamicComboBoxDelegate(ui->tableWidgetBaseValues, 0, this);
+    ui->tableWidget->setItemDelegateForColumn(7, baseValueDelegate);
 }
