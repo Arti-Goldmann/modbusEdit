@@ -27,67 +27,67 @@
             "accessType": "RW",
             "addressDec": "1",
             "addressHex": "0xA0A0",
+            "base": "Номинальная скорость",
             "dataType": "int16",
             "gain": "0.1",
             "groupName": "test1",
             "note": "test_note",
-            "varName": "varName1",
-            "base": "Номинальная скорость"
+            "varName": "varName1"
         },
         {
             "accessType": "R",
             "addressDec": "2",
             "addressHex": "0xA0A0",
+            "base": "Номинальная скорость",
             "dataType": "int16",
             "gain": "0.2",
             "groupName": "test2",
             "note": "test_note",
-            "varName": "varName2",
-            "base": "Номинальная скорость"
+            "varName": "varName2"
         },
         {
             "accessType": "RW",
             "addressDec": "3",
             "addressHex": "0xA0A0",
+            "base": "Номинальное напряжение",
             "dataType": "Uint16",
             "gain": "0.3",
             "groupName": "test3",
             "note": "test_note",
-            "varName": "varName3",
-            "base": "Номинальное напряжение"
+            "varName": "varName3"
         },
         {
             "accessType": "R",
             "addressDec": "4",
             "addressHex": "0xA0A0",
+            "base": "Номинальное напряжение",
             "dataType": "int16",
             "gain": "0.1",
-            "groupName": "test1",
+            "groupName": "test4",
             "note": "test_note",
-            "varName": "varName4",
-            "base": "Номинальное напряжение"
+            "varName": "varName4"
         },
         {
             "accessType": "RW",
             "addressDec": "5",
             "addressHex": "0xA0A0",
+            "base": "Номинальный ток",
             "dataType": "int16",
             "gain": "0.2",
-            "groupName": "test2",
+            "groupName": "test5",
             "note": "test_note",
-            "varName": "varName5",
-            "base": "Номинальный ток"
+            "varName": "varName5"
         },
         {
             "accessType": "R",
             "addressDec": "6",
             "addressHex": "0xA0A0",
+            "base": "Номинальный ток",
             "dataType": "Uint16",
             "gain": "0.3",
-            "groupName": "test3",
+            "groupName": "test6",
             "note": "test_note",
-            "varName": "varName6",
-            "base": "Номинальный ток"
+            "varName": "varName6"
         }
     ]
 }

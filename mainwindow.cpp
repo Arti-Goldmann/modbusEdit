@@ -38,6 +38,7 @@ void MainWindow::setupUI(){
     //Настройки таблицы с данными
     ui->tableWidget->setColumnCount(TABLE_HEADERS.size());
     ui->tableWidget->setHorizontalHeaderLabels(TABLE_HEADERS);
+    ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
 
     // Настройка ширины столбцов
     ui->tableWidget->setColumnWidth(0, 300);  // Название группы параметров
@@ -89,6 +90,9 @@ void MainWindow::setupUI(){
 
     connect(ui->tableWidgetBaseValues, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClickedBaseValues);
+
+    connect(ui->tableWidget, &QTableWidget::customContextMenuRequested,
+            this, &MainWindow::showContextMenu);
 }
 
 void MainWindow::setupTable(QTableWidget* table) {
@@ -285,4 +289,53 @@ void MainWindow::processError(const QString& message, const QString& title) {
     statusBar()->showMessage(title, 5000);
     qCritical() << message;
     QMessageBox::critical(this, title, message);
+}
+
+void MainWindow::showContextMenu(const QPoint &pos)
+{
+    QTableWidgetItem *item = ui->tableWidget->itemAt(pos);
+    if (!item) return;
+    
+    int row = item->row();
+    
+    // Не показывать контекстное меню для последней строки (строки с плюсиком)
+    if (row == ui->tableWidget->rowCount() - 1) {
+        return;
+    }
+    
+    // Сохраняем номер строки для использования в других методах
+    contextMenuClickRow = row;
+    
+    QMenu contextMenu(this);
+
+    QAction *deleteAction = contextMenu.addAction("Удалить");
+    QAction *addAction = contextMenu.addAction("Добавить");
+
+    QAction *selectedAction = contextMenu.exec(ui->tableWidget->mapToGlobal(pos));
+
+    if (selectedAction == deleteAction) {
+        deleteRow();
+    } else if (selectedAction == addAction) {
+        addRow();
+    }
+}
+
+void MainWindow::deleteRow()
+{
+    int currentRow = ui->tableWidget->currentRow();
+    if (currentRow >= 0) {
+        ui->tableWidget->removeRow(currentRow);
+    }
+}
+
+void MainWindow::addRow()
+{
+    if (contextMenuClickRow >= 0) {
+        // Добавляем строку после той, на которую кликнули
+        ui->tableWidget->insertRow(contextMenuClickRow + 1);
+    } else {
+        // Если не знаем где кликнули, добавляем перед последней строкой (строкой с плюсиком)
+        int rowCount = ui->tableWidget->rowCount();
+        ui->tableWidget->insertRow(rowCount - 1);
+    }
 }

@@ -42,6 +42,10 @@ private:
     
     void processError(const QString& message, const QString& title);
     bool saveProfileHandler(bool isSaveAs);
+    void deleteRow();
+    void addRow();
+    
+    int contextMenuClickRow = -1;
 
     //Названия колонок таблицы с данными
     const QStringList TABLE_HEADERS = {
@@ -66,5 +70,6 @@ private slots:
     bool saveProfileAs();
     bool startGeneration();
     bool setGenerationPath();
+    void showContextMenu(const QPoint &pos);
 };
 #endif // MAINWINDOW_H
