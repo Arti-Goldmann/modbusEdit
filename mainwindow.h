@@ -44,8 +44,10 @@ private:
     bool saveProfileHandler(bool isSaveAs);
     void deleteRow();
     void addRow();
+    void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
     
     int contextMenuClickRow = -1;
+    QTableWidget* contextMenuActiveTable = nullptr;
 
     //Названия колонок таблицы с данными
     const QStringList TABLE_HEADERS = {
@@ -71,5 +73,6 @@ private slots:
     bool startGeneration();
     bool setGenerationPath();
     void showContextMenu(const QPoint &pos);
+    void showContextMenuBaseValues(const QPoint &pos);
 };
 #endif // MAINWINDOW_H

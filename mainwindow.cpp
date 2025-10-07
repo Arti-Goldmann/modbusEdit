@@ -57,6 +57,7 @@ void MainWindow::setupUI(){
     //Настройки таблицы с базовыми величинами
     ui->tableWidgetBaseValues->setColumnCount(BASE_VALUES_HEADERS.size());
     ui->tableWidgetBaseValues->setHorizontalHeaderLabels(BASE_VALUES_HEADERS);
+    ui->tableWidgetBaseValues->setContextMenuPolicy(Qt::CustomContextMenu);
 
     ui->tableWidgetBaseValues->setColumnWidth(0, 300);
     ui->tableWidgetBaseValues->setColumnWidth(1, 70);
@@ -93,6 +94,9 @@ void MainWindow::setupUI(){
 
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested,
             this, &MainWindow::showContextMenu);
+
+    connect(ui->tableWidgetBaseValues, &QTableWidget::customContextMenuRequested,
+            this, &MainWindow::showContextMenuBaseValues);
 }
 
 void MainWindow::setupTable(QTableWidget* table) {
@@ -293,25 +297,34 @@ void MainWindow::processError(const QString& message, const QString& title) {
 
 void MainWindow::showContextMenu(const QPoint &pos)
 {
-    QTableWidgetItem *item = ui->tableWidget->itemAt(pos);
-    if (!item) return;
-    
-    int row = item->row();
+    showContextMenuForTable(pos, ui->tableWidget);
+}
+
+void MainWindow::showContextMenuBaseValues(const QPoint &pos)
+{
+    showContextMenuForTable(pos, ui->tableWidgetBaseValues);
+}
+
+void MainWindow::showContextMenuForTable(const QPoint &pos, QTableWidget* table)
+{
+    int row = table->rowAt(pos.y());
+    if (row < 0) return;
     
     // Не показывать контекстное меню для последней строки (строки с плюсиком)
-    if (row == ui->tableWidget->rowCount() - 1) {
+    if (row == table->rowCount() - 1) {
         return;
     }
     
-    // Сохраняем номер строки для использования в других методах
+    // Сохраняем номер строки и таблицу для использования в других методах
     contextMenuClickRow = row;
+    contextMenuActiveTable = table;
     
     QMenu contextMenu(this);
 
     QAction *deleteAction = contextMenu.addAction("Удалить");
     QAction *addAction = contextMenu.addAction("Добавить");
 
-    QAction *selectedAction = contextMenu.exec(ui->tableWidget->mapToGlobal(pos));
+    QAction *selectedAction = contextMenu.exec(table->mapToGlobal(pos));
 
     if (selectedAction == deleteAction) {
         deleteRow();
@@ -322,20 +335,23 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
 void MainWindow::deleteRow()
 {
-    int currentRow = ui->tableWidget->currentRow();
-    if (currentRow >= 0) {
-        ui->tableWidget->removeRow(currentRow);
+    if (!contextMenuActiveTable) return;
+    
+    if (contextMenuClickRow >= 0 && contextMenuClickRow < contextMenuActiveTable->rowCount() - 1) {
+        contextMenuActiveTable->removeRow(contextMenuClickRow);
     }
 }
 
 void MainWindow::addRow()
 {
+    if (!contextMenuActiveTable) return;
+    
     if (contextMenuClickRow >= 0) {
         // Добавляем строку после той, на которую кликнули
-        ui->tableWidget->insertRow(contextMenuClickRow + 1);
+        contextMenuActiveTable->insertRow(contextMenuClickRow + 1);
     } else {
         // Если не знаем где кликнули, добавляем перед последней строкой (строкой с плюсиком)
-        int rowCount = ui->tableWidget->rowCount();
-        ui->tableWidget->insertRow(rowCount - 1);
+        int rowCount = contextMenuActiveTable->rowCount();
+        contextMenuActiveTable->insertRow(rowCount - 1);
     }
 }
