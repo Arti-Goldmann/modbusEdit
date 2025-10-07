@@ -44,10 +44,10 @@ void MainWindow::setupUI(){
     ui->tableWidget->setColumnWidth(1, 100);  // Тип доступа
     ui->tableWidget->setColumnWidth(2, 100);  // Тип данных
     ui->tableWidget->setColumnWidth(3, 80);   // Коэффициент
-    ui->tableWidget->setColumnWidth(4, 60);   // Ед. изм.
-    ui->tableWidget->setColumnWidth(5, 120);  // Диапазон значений
-    ui->tableWidget->setColumnWidth(6, 80);   // Адрес (дес.)
-    ui->tableWidget->setColumnWidth(7, 80);   // Адрес (hex.)
+    ui->tableWidget->setColumnWidth(4, 80);   // Адрес (дес.)
+    ui->tableWidget->setColumnWidth(5, 80);   // Адрес (hex.)
+    ui->tableWidget->setColumnWidth(6, 200);  // Переменнная
+    ui->tableWidget->setColumnWidth(7, 200);  // Базовая величина
     ui->tableWidget->setColumnWidth(8, 150);  // Примечание
 
     setupTable(ui->tableWidget);
@@ -131,6 +131,29 @@ bool MainWindow::setGenerationPath() {
     return true;
 }
 
+void MainWindow::fillTable(const QJsonArray& data, const QStringList& keys, QTableWidget* table) {
+    // Заполняем таблицу с данными
+    table->setRowCount(0);
+
+    int rowCounter = 0;
+    for(const QJsonValue &val : std::as_const(data)) {
+
+        QJsonObject obj = val.toObject();
+
+        // Добавляем строку в таблицу
+        table->insertRow(rowCounter);
+
+        //Получаем строку из объекта json и кладем в соответсвующую колонку
+        for(int col = 0; col < keys.size(); col++) {
+            QString str = obj[keys[col]].toString();
+            table->setItem(rowCounter, col, new QTableWidgetItem(str));
+        }
+        rowCounter++;
+    }
+
+    addPlusRow(table); //Добавляем последнюю строку с плюсиком
+}
+
 bool MainWindow::loadProfile() {
 
     auto profileResultOpt = jsonProfileManager.loadProfile();
@@ -143,47 +166,8 @@ bool MainWindow::loadProfile() {
     QJsonArray data = profileResultOpt.value().data;
     QJsonArray baseValues = profileResultOpt.value().baseValues;
 
-    // Заполняем таблицу с данными
-    ui->tableWidget->setRowCount(0);
-
-    int rowCounter = 0;
-    for(const QJsonValue &val : std::as_const(data)) {
-
-        QJsonObject obj = val.toObject();
-
-        // Добавляем строку в таблицу
-        ui->tableWidget->insertRow(rowCounter);
-
-        //Получаем строку из объекта json и кладем в соответсвующую колонку
-        for(int col = 0; col < jsonProfileManager.COLUMN_KEYS.size(); col++) {
-            QString str = obj[jsonProfileManager.COLUMN_KEYS[col]].toString();
-            ui->tableWidget->setItem(rowCounter, col, new QTableWidgetItem(str));
-        }
-        rowCounter++;
-    }
-
-    addPlusRow(ui->tableWidget); //Добавляем последнюю строку с плюсиком
-
-    // Заполняем таблицу с базовыми величинами
-    ui->tableWidgetBaseValues->setRowCount(0);
-
-    rowCounter = 0;
-    for(const QJsonValue &val : std::as_const(baseValues)) {
-
-        QJsonObject obj = val.toObject();
-
-        // Добавляем строку в таблицу
-        ui->tableWidgetBaseValues->insertRow(rowCounter);
-
-        //Получаем строку из объекта json и кладем в соответсвующую колонку
-        for(int col = 0; col < jsonProfileManager.BASE_VALUES_KEYS.size(); col++) {
-            QString str = obj[jsonProfileManager.BASE_VALUES_KEYS[col]].toString();
-            ui->tableWidgetBaseValues->setItem(rowCounter, col, new QTableWidgetItem(str));
-        }
-        rowCounter++;
-    }
-
-    addPlusRow(ui->tableWidgetBaseValues); //Добавляем последнюю строку с плюсиком
+    fillTable(data, jsonProfileManager.COLUMN_KEYS, ui->tableWidget);
+    fillTable(baseValues, jsonProfileManager.BASE_VALUES_KEYS, ui->tableWidgetBaseValues);
 
     QString profilePath = jsonProfileManager.getCurrentProfilePath();
     QFileInfo fileInfo(profilePath);
@@ -230,9 +214,9 @@ bool MainWindow::startGeneration(){
     }
 
     QJsonArray data = resultReadJsonOpt.value().data;
-    //TODO: QJsonArray bsdeValues = resultReadJsonOpt.value().baseValues;
+    QJsonArray baseValues = resultReadJsonOpt.value().baseValues;
 
-    if(data.isEmpty()) {
+    if(data.isEmpty() || baseValues.isEmpty()) {
         processError(QString("Пустой профиль: %1").arg(jsonProfileManager.getCurrentProfilePath()), "Ошибка генерации файла");
         return false;
     }
@@ -242,7 +226,7 @@ bool MainWindow::startGeneration(){
         return false;
     }
 
-    if(outFileGenerator.generate(data, outFileGenerator.getCurrentGenFilePath())) {
+    if(outFileGenerator.generate(data, baseValues)) {
         statusBar()->showMessage("Файл успешно сгенерирован", 5000);
     } else {
         processError(outFileGenerator.getLastError(), "Ошибка генерации файла");

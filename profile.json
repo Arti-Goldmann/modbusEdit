@@ -1,21 +1,21 @@
 {
     "baseValues": [
         {
-            "IQformat": "16.0",
+            "IQformat": "0",
             "baseName": "Номинальный ток",
             "baseValue": "drv_params.Inom",
             "note": "test1",
             "units": "A"
         },
         {
-            "IQformat": "16.0",
+            "IQformat": "1",
             "baseName": "Номинальное напряжение",
             "baseValue": "drv_params.Unom",
             "note": "test2",
             "units": "В"
         },
         {
-            "IQformat": "16.0",
+            "IQformat": "2",
             "baseName": "Номинальная скорость",
             "baseValue": "drv_params.speed_nom",
             "note": "test3",
@@ -31,8 +31,8 @@
             "gain": "0.1",
             "groupName": "test1",
             "note": "test_note",
-            "range": "100",
-            "units": "A"
+            "varName": "varName1",
+            "base": "Номинальная скорость"
         },
         {
             "accessType": "R",
@@ -42,8 +42,8 @@
             "gain": "0.2",
             "groupName": "test2",
             "note": "test_note",
-            "range": "100",
-            "units": "A"
+            "varName": "varName2",
+            "base": "Номинальная скорость"
         },
         {
             "accessType": "RW",
@@ -53,8 +53,8 @@
             "gain": "0.3",
             "groupName": "test3",
             "note": "test_note",
-            "range": "100",
-            "units": "A"
+            "varName": "varName3",
+            "base": "Номинальное напряжение"
         },
         {
             "accessType": "R",
@@ -64,8 +64,8 @@
             "gain": "0.1",
             "groupName": "test1",
             "note": "test_note",
-            "range": "100",
-            "units": "A"
+            "varName": "varName4",
+            "base": "Номинальное напряжение"
         },
         {
             "accessType": "RW",
@@ -75,8 +75,8 @@
             "gain": "0.2",
             "groupName": "test2",
             "note": "test_note",
-            "range": "100",
-            "units": "A"
+            "varName": "varName5",
+            "base": "Номинальный ток"
         },
         {
             "accessType": "R",
@@ -86,8 +86,8 @@
             "gain": "0.3",
             "groupName": "test3",
             "note": "test_note",
-            "range": "100",
-            "units": "A"
+            "varName": "varName6",
+            "base": "Номинальный ток"
         }
     ]
 }

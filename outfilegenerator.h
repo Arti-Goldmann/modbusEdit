@@ -25,7 +25,7 @@ public:
     QString getCurrentGenFilePath() const { return currentGenFilePath; }
     bool hasActiveGenFile() const { return !currentGenFilePath.isEmpty(); }
 
-    bool generate(const QJsonArray& jsonArr, const QString& absGenPath);
+    bool generate(const QJsonArray& data, const QJsonArray& baseValues);
 private:
     QWidget* parent;
     QString lastError;
@@ -48,10 +48,10 @@ private:
         {"Uint16", "IQtoUInt16"},
         };
 
-    QString funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& jsonArr, TdirectionType readOrWrite);
-    QString funcHandlerGen_R(const QString& funcName, const QJsonObject& obj);
-    QString funcHandlerGen_W(const QString& funcName, const QJsonObject& obj);
-    QString arrayGen(const QString& arrName, const QString&type, const QJsonArray& jsonArr);
+    QString funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& data, const QJsonArray& baseValues, TdirectionType readOrWrite);
+    QString funcHandlerGen_R(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue);
+    QString funcHandlerGen_W(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue);
+    QString arrayGen(const QString& arrName, const QString&type, const QJsonArray& data);
     void setError(const QString& message);
 };
 

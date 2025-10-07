@@ -38,6 +38,7 @@ private:
     void setupUI();
     void setupTable(QTableWidget*);
     void addPlusRow(QTableWidget*);
+    void fillTable(const QJsonArray& data, const QStringList& keys, QTableWidget* table);
     
     void processError(const QString& message, const QString& title);
     bool saveProfileHandler(bool isSaveAs);
@@ -46,8 +47,7 @@ private:
     const QStringList TABLE_HEADERS = {
         "Название группы параметров / параметра",
         "Тип доступа", "Тип данных", "Коэффициент",
-        "Ед. изм.", "Диапазон значений",
-        "Адрес (дес.)", "Адрес (hex.)", "Примечание"
+        "Адрес (дес.)", "Адрес (hex.)","Переменная / значение","Базовая величина","Примечание"
     };
 
     //Названия колонок таблицы с базовыми величинами

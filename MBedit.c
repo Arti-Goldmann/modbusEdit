@@ -3,13 +3,13 @@ void MBhandlerHR_R(TModbusSlaveDictObj* reg)
 	switch (reg->mbIndex)
 	{
 		case 1:
-			reg->data = IQtoInt16(varName,0.1,base,0);
+			reg->data = IQtoInt16(varName1,0.1,drv_params.speed_nom,2);
 			break;
 		case 3:
-			reg->data = IQtoUInt16(varName,0.3,base,0);
+			reg->data = IQtoUInt16(varName3,0.3,drv_params.Unom,1);
 			break;
 		case 5:
-			reg->data = IQtoInt16(varName,0.2,base,0);
+			reg->data = IQtoInt16(varName5,0.2,drv_params.Inom,0);
 			break;
 		default:
 			break;
@@ -21,13 +21,13 @@ void MBhandlerHR_W(TModbusSlaveDictObj* reg)
 	switch (reg->mbIndex)
 	{
 		case 1:
-			varName = Int16toIQ(reg->data,0.1,base,0);
+			varName1 = Int16toIQ(reg->data,0.1,drv_params.speed_nom,2);
 			break;
 		case 3:
-			varName = UInt16toIQ(reg->data,0.3,base,0);
+			varName3 = UInt16toIQ(reg->data,0.3,drv_params.Unom,1);
 			break;
 		case 5:
-			varName = Int16toIQ(reg->data,0.2,base,0);
+			varName5 = Int16toIQ(reg->data,0.2,drv_params.Inom,0);
 			break;
 		default:
 			break;
@@ -39,13 +39,13 @@ void MBhandlerIR_R(TModbusSlaveDictObj* reg)
 	switch (reg->mbIndex)
 	{
 		case 2:
-			reg->data = IQtoInt16(varName,0.2,base,0);
+			reg->data = IQtoInt16(varName2,0.2,drv_params.speed_nom,2);
 			break;
 		case 4:
-			reg->data = IQtoInt16(varName,0.1,base,0);
+			reg->data = IQtoInt16(varName4,0.1,drv_params.Unom,1);
 			break;
 		case 6:
-			reg->data = IQtoUInt16(varName,0.3,base,0);
+			reg->data = IQtoUInt16(varName6,0.3,drv_params.Inom,0);
 			break;
 		default:
 			break;

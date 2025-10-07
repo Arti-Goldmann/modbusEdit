@@ -24,12 +24,12 @@ bool OutFileGenerator::setGenerationPath() {
     return true;
 }
 
-bool OutFileGenerator::generate(const QJsonArray& jsonArr, const QString& absGenPath) {
+bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseValues) {
     lastError.clear();
 
-    QFile file(absGenPath);
+    QFile file(currentGenFilePath);
     if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
-        setError(QString("Не удалось открыть файл: %1\nОшибка: %2").arg(absGenPath, file.errorString()));
+        setError(QString("Не удалось открыть файл: %1\nОшибка: %2").arg(currentGenFilePath, file.errorString()));
         return false;
     }
 
@@ -37,15 +37,15 @@ bool OutFileGenerator::generate(const QJsonArray& jsonArr, const QString& absGen
     try{
         //TODO: coils и DI тоже сделать
         //Формируем функцию на чтение для RW (Holding Registers RW)
-        out << funcHandlerGen("MBhandlerHR_R", "RW", jsonArr, FOR_READ);
+        out << funcHandlerGen("MBhandlerHR_R", "RW", data, baseValues, FOR_READ);
         //Формируем функцию на запись для RW (Holding Registers RW)
-        out << funcHandlerGen("MBhandlerHR_W", "RW", jsonArr, FOR_WRITE);
+        out << funcHandlerGen("MBhandlerHR_W", "RW", data, baseValues, FOR_WRITE);
         //Формируем функцию на чтение для R (Input Registers R)
-        out << funcHandlerGen("MBhandlerIR_R", "R", jsonArr, FOR_READ);
+        out << funcHandlerGen("MBhandlerIR_R", "R", data, baseValues, FOR_READ);
 
         out << "// R/W-переменные.\n";
-        out << arrayGen("mbodHR", "RW", jsonArr);
-        out << arrayGen("mbodIR", "R", jsonArr);
+        out << arrayGen("mbodHR", "RW", data);
+        out << arrayGen("mbodIR", "R", data);
 
         //TODO: coils и DI тоже сделать
         out << "TModbusSlaveDictObj mbodC[] =\n";
@@ -68,23 +68,36 @@ bool OutFileGenerator::generate(const QJsonArray& jsonArr, const QString& absGen
     return true;
 }
 
-QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& jsonArr, TdirectionType readOrWrite) {
+QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& data, const QJsonArray& baseValues, TdirectionType readOrWrite) {
     QString output;
 
     //Начало функции
     output.append("void " + funcName + "(TModbusSlaveDictObj* reg)\n{\n\tswitch (reg->mbIndex)\n\t{\n");
 
-    for(const QJsonValue &val : std::as_const(jsonArr)) {
+    for(const QJsonValue &val : std::as_const(data)) {
 
         QJsonObject obj = val.toObject();
 
         if(obj["accessType"] == type) { //Нашли объект с нужным типом доступа
+            QString baseValue;
+            QString IQformat;
+
+            //Ищем base значение для этой data
+            for(const QJsonValue &baseVal : std::as_const(baseValues)) {
+                QJsonObject baseObj = baseVal.toObject();
+
+                if(obj["base"] == baseObj["baseName"]) { //Имена базовой величины совпали
+                    baseValue = baseObj["baseValue"].toString();
+                    IQformat = baseObj["IQformat"].toString();
+                }
+            }
+
             //Начало switch case
             output.append(QString("\t\tcase %1:\n").arg(obj["addressDec"].toString().toInt())); //Пишем case и адрес регистра
 
             //Формируем функцию на чтение или запись
-            QString switchCaseCode = (readOrWrite == FOR_READ) ? funcHandlerGen_R(funcName, obj):
-                                                                 funcHandlerGen_W(funcName, obj);
+            QString switchCaseCode = (readOrWrite == FOR_READ) ? funcHandlerGen_R(funcName, obj, IQformat, baseValue):
+                                                                 funcHandlerGen_W(funcName, obj, IQformat, baseValue);
 
             output.append(switchCaseCode);
 
@@ -98,45 +111,45 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
     return output;
 }
 
-QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonObject& obj) {
+QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue) {
     QString output;
 
     //Формируем функцию для этого case в соотвествии с полями json
     output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
                       .arg(IQ_TO_TYPE_FUNC[obj["dataType"].toString()],
-                           "varName", //TODO: varName
+                           obj["varName"].toString(),
                            obj["gain"].toString(),
-                           "base", //TODO: base
-                           "0" //TODO: Qbase
+                           baseValue,
+                           IQformat
                            )
                   );
 
     return output;
 }
 
-QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonObject& obj) {
+QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue) {
     QString output;
 
     //Формируем функцию для этого case в соотвествии с полями json
     output.append(QString("\t\t\t%2 = %1(reg->data,%3,%4,%5);\n")
                       .arg(TYPE_TO_IQ_FUNC[obj["dataType"].toString()],
-                           "varName", //TODO: varName
+                           obj["varName"].toString(),
                            obj["gain"].toString(),
-                           "base", //TODO: base
-                           "0" //TODO: Qbase
+                           baseValue,
+                           IQformat
                            )
                   );
 
     return output;
 }
 
-QString OutFileGenerator::arrayGen(const QString& arrName, const QString&type, const QJsonArray& jsonArr) {
+QString OutFileGenerator::arrayGen(const QString& arrName, const QString&type, const QJsonArray& data) {
     QString output;
 
     //Начало массива
     output.append("TModbusSlaveDictObj*" + arrName + "[]=\n\{\n");
 
-    for(const QJsonValue &val : std::as_const(jsonArr)) {
+    for(const QJsonValue &val : std::as_const(data)) {
 
         QJsonObject obj = val.toObject();
 

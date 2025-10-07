@@ -42,7 +42,7 @@ public:
 
     //Ключи json файла
     const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
-                                     "units", "range", "addressDec", "addressHex", "note"};
+                                     "addressDec", "addressHex", "varName", "base", "note"};
 
     const QStringList BASE_VALUES_KEYS = {"baseName", "units", "IQformat", "baseValue", "note"};
 
