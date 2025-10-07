@@ -26,13 +26,11 @@ public:
 
     // Основные операции с профилями
     std::optional<TProfileResult> loadProfile(); // Диалог + загрузка
+    std::optional<TProfileResult> readProfile() {return readProfileFormPath(currentProfilePath);}; // загрузка
     bool saveProfile(QTableWidget* tableData, QTableWidget* tableBaseValues);   // Сохранить в текущий файл
     bool saveProfileAs(QTableWidget* tableData, QTableWidget* tableBaseValues); // Сохранить как...
 
-    std::optional<QJsonArray> readJsonData(const QString& filePath);
-    std::optional<QJsonArray> readJsonData() {return readJsonData(currentProfilePath);};
-    std::optional<QJsonArray> readJsonBaseValues(const QString& filePath);
-    std::optional<QJsonArray> readJsonBaseValues() {return readJsonBaseValues(currentProfilePath);};
+
 
     // Валидация
     bool validateProfile(const QJsonArray& data);
@@ -57,6 +55,9 @@ private:
     bool writeJsonFile(const QString& filePath, const QJsonArray& data);
     void setError(const QString& error) { lastError = error; }
     std::optional<QJsonObject> readJsonObj(const QString& filePath);
+    std::optional<QJsonArray> readJsonArr(const QString& filePath, const QString& field);
+    std::optional<TProfileResult> readProfileFormPath(const QString& profilePath); // загрузка
+    QJsonArray tableToJsonArray(QTableWidget* table, const QStringList& keys);
 
     // Работа с настройками
     QString getLastDirectory() const;

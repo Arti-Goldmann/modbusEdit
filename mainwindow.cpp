@@ -85,10 +85,10 @@ void MainWindow::setupUI(){
             this, &MainWindow::onSelectionChanged);
 
     connect(ui->tableWidget, &QTableWidget::cellClicked,
-            this, &MainWindow::onCellClicked);
+            this, &MainWindow::onCellClickedData);
 
     connect(ui->tableWidgetBaseValues, &QTableWidget::cellClicked,
-            this, &MainWindow::onCellClicked);
+            this, &MainWindow::onCellClickedBaseValues);
 }
 
 void MainWindow::setupTable(QTableWidget* table) {
@@ -222,16 +222,17 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
 bool MainWindow::startGeneration(){
 
-    auto optionalDataJsonArr = jsonProfileManager.readJsonData();
+    auto resultReadJsonOpt = jsonProfileManager.readProfile();
 
-    if (!optionalDataJsonArr.has_value()) {
+    if (!resultReadJsonOpt.has_value()) {
         processError(jsonProfileManager.getLastError(), "Ошибка генерации файла");
         return false;
     }
 
-    QJsonArray jsonArr = optionalDataJsonArr.value();
+    QJsonArray data = resultReadJsonOpt.value().data;
+    //TODO: QJsonArray bsdeValues = resultReadJsonOpt.value().baseValues;
 
-    if(jsonArr.isEmpty()) {
+    if(data.isEmpty()) {
         processError(QString("Пустой профиль: %1").arg(jsonProfileManager.getCurrentProfilePath()), "Ошибка генерации файла");
         return false;
     }
@@ -241,7 +242,7 @@ bool MainWindow::startGeneration(){
         return false;
     }
 
-    if(outFileGenerator.generate(jsonArr, outFileGenerator.getCurrentGenFilePath())) {
+    if(outFileGenerator.generate(data, outFileGenerator.getCurrentGenFilePath())) {
         statusBar()->showMessage("Файл успешно сгенерирован", 5000);
     } else {
         processError(outFileGenerator.getLastError(), "Ошибка генерации файла");
@@ -280,13 +281,16 @@ void MainWindow::onSelectionChanged(){
 }
 
 // Реализация слота для клика по ячейке
-void MainWindow::onCellClicked(int row, int col)
+void MainWindow::onCellClickedData(int row, int col)
 {
     if (row == ui->tableWidget->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
         ui->tableWidget->insertRow(row);
     }
+}
 
+void MainWindow::onCellClickedBaseValues(int row, int col)
+{
     if (row == ui->tableWidgetBaseValues->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
         ui->tableWidgetBaseValues->insertRow(row);

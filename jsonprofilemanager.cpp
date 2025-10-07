@@ -10,6 +10,11 @@ std::optional<JsonProfileManager::TProfileResult> JsonProfileManager::loadProfil
                                                        QObject::tr("Open File"),
                                                        lastDir,
                                                        QObject::tr("JSON (*.json)"));
+    return readProfileFormPath(profilePath);
+}
+
+std::optional<JsonProfileManager::TProfileResult> JsonProfileManager::readProfileFormPath(const QString& profilePath) {
+    lastError.clear();
 
     if (profilePath.isEmpty()) {
         setError("Файл .json не найден");
@@ -21,12 +26,12 @@ std::optional<JsonProfileManager::TProfileResult> JsonProfileManager::loadProfil
     // Сохранить директорию для следующего раза
     saveLastDirectory(currentProfilePath);
 
-    auto dataOpt = readJsonData(profilePath);
+    auto dataOpt = readJsonArr(profilePath, "data");
     if(!dataOpt.has_value()) {
         return std::nullopt;
     }
 
-    auto baseValuesOpt = readJsonBaseValues(profilePath);
+    auto baseValuesOpt = readJsonArr(profilePath, "baseValues");
     if(!baseValuesOpt.has_value()) {
         return std::nullopt;
     }
@@ -74,7 +79,8 @@ std::optional<QJsonObject> JsonProfileManager::readJsonObj(const QString& filePa
     return doc.object();
 }
 
-std::optional<QJsonArray> JsonProfileManager::readJsonData(const QString& filePath) {
+
+std::optional<QJsonArray> JsonProfileManager::readJsonArr(const QString& filePath, const QString& field) {
     lastError.clear();
 
     auto rootObjOpt = readJsonObj(filePath);
@@ -85,31 +91,12 @@ std::optional<QJsonArray> JsonProfileManager::readJsonData(const QString& filePa
     QJsonObject rootObj = rootObjOpt.value();
 
     // Проверка наличия поля с данными
-    if (!rootObj.contains("data") || !rootObj["data"].isArray()) {
-        setError("JSON файл должен содержать поле 'data' с массивом данных");
+    if (!rootObj.contains(field) || !rootObj[field].isArray()) {
+        setError(QString("JSON файл должен содержать поле %1").arg(field));
         return std::nullopt;
     }
 
-    return rootObj["data"].toArray();
-}
-
-std::optional<QJsonArray> JsonProfileManager::readJsonBaseValues(const QString& filePath) {
-    lastError.clear();
-
-    auto rootObjOpt = readJsonObj(filePath);
-    if(!rootObjOpt.has_value()) {
-        return std::nullopt;
-    }
-
-    QJsonObject rootObj = rootObjOpt.value();
-
-    // Проверка наличия поля с данными
-    if (!rootObj.contains("baseValues") || !rootObj["baseValues"].isArray()) {
-        setError("JSON файл должен содержать поле 'baseValues' с базовыми величинами");
-        return std::nullopt;
-    }
-
-    return rootObj["baseValues"].toArray();
+    return rootObj[field].toArray();
 }
 
 bool JsonProfileManager::saveProfileAs(QTableWidget* tableData, QTableWidget* tableBaseValues){
@@ -136,41 +123,26 @@ bool JsonProfileManager::saveProfileAs(QTableWidget* tableData, QTableWidget* ta
     return saveProfile(tableData, tableBaseValues);
 }
 
+QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStringList& keys) {
+    QJsonArray result;
+
+    // Проходим по всем строкам, кроме последней (строка с "+")
+    for(int row = 0; row < table->rowCount() - 1; row++) {
+        QJsonObject obj;
+        for(int col = 0; col < keys.size(); col++) {
+            QTableWidgetItem* item = table->item(row, col);
+            obj[keys[col]] = item ? item->text() : "";
+        }
+        result.append(obj);
+    }
+
+    return result;
+}
 
 bool JsonProfileManager::saveProfile(QTableWidget* tableData, QTableWidget* tableBaseValues){
     lastError.clear();
 
-    QJsonArray data;
-    QJsonArray baseValues;
-
-    //Проходим по всем строкам таблицы, кроме последней, потому что там строка с "+"
-    for(int rowCounter = 0; rowCounter < tableData->rowCount() - 1; rowCounter++) {
-        //Проходим по всем колонкам таблицы и сохраняем в соответсвующий ключ json
-        QJsonObject obj;
-
-        for(int col = 0; col < COLUMN_KEYS.size(); col++) {
-            QTableWidgetItem* item = tableData->item(rowCounter, col);
-            obj[COLUMN_KEYS[col]] = item ? item->text() : "";
-        }
-
-        data.append(obj);
-    }
-
-    for(int rowCounter = 0; rowCounter < tableBaseValues->rowCount() - 1; rowCounter++) {
-        //Проходим по всем колонкам таблицы и сохраняем в соответсвующий ключ json
-        QJsonObject obj;
-
-        for(int col = 0; col < BASE_VALUES_KEYS.size(); col++) {
-            QTableWidgetItem* item = tableBaseValues->item(rowCounter, col);
-            obj[BASE_VALUES_KEYS[col]] = item ? item->text() : "";
-        }
-
-        baseValues.append(obj);
-    }
-
     QString profilePath = currentProfilePath;
-
-    qDebug() << "Текущий путь активного профиля " << profilePath;
 
     // Открытие файла
     if(!profilePath.isEmpty()) {
@@ -183,8 +155,8 @@ bool JsonProfileManager::saveProfile(QTableWidget* tableData, QTableWidget* tabl
         }
 
         QJsonObject rootObj;
-        rootObj["baseValues"] = baseValues;
-        rootObj["data"] = data;
+        rootObj["baseValues"] = tableToJsonArray(tableBaseValues, BASE_VALUES_KEYS);
+        rootObj["data"] = tableToJsonArray(tableData, COLUMN_KEYS);
 
         QJsonDocument doc(rootObj);
         QByteArray byteArr = doc.toJson(QJsonDocument::Indented);

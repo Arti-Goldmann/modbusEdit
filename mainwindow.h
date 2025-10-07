@@ -59,7 +59,8 @@ private:
 
 private slots:
     void onSelectionChanged();
-    void onCellClicked(int row, int col);
+    void onCellClickedData(int row, int col);
+    void onCellClickedBaseValues(int row, int col);
     bool loadProfile();
     bool saveProfile();
     bool saveProfileAs();
