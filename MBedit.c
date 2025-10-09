@@ -1,5 +1,6 @@
 //Файл сгенерирован автоматически.
 #include "MBedit.h"
+
 void MBhandlerHR_R(TModbusSlaveDictObj* reg)
 {
 	switch (reg->mbIndex)
