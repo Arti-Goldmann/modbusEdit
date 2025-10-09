@@ -242,6 +242,8 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
 bool MainWindow::startGeneration(){
 
+    //TODO: нужно сначал сохранить изменения в json перед тем как генерировать, если были изменения в таблице
+
     auto resultReadJsonOpt = jsonProfileManager.readProfile();
 
     if (!resultReadJsonOpt.has_value()) {
@@ -264,6 +266,14 @@ bool MainWindow::startGeneration(){
 
     if(outFileGenerator.generate(data, baseValues)) {
         statusBar()->showMessage("Файл успешно сгенерирован", 5000);
+        
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Information);
+        msgBox.setWindowIcon(QIcon(":/ModBus.ico"));
+        msgBox.setWindowTitle("Генерация завершена");
+        msgBox.setText("Файл успешно сгенерирован!");
+        msgBox.setStandardButtons(QMessageBox::Ok);
+        msgBox.exec();
     } else {
         processError(outFileGenerator.getLastError(), "Ошибка генерации файла");
         return false;

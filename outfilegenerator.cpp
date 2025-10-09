@@ -36,6 +36,7 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
     QTextStream out(&file);
     try{
         //TODO: coils и DI тоже сделать
+        out << "//Файл сгенерирован автоматически.\n#include \"MBedit.h\"\n\n";
         //Формируем функцию на чтение для RW (Holding Registers RW)
         out << funcHandlerGen("MBhandlerHR_R", "RW", data, baseValues, FOR_READ);
         //Формируем функцию на запись для RW (Holding Registers RW)
@@ -154,7 +155,7 @@ QString OutFileGenerator::arrayGen(const QString& arrName, const QString&type, c
         QJsonObject obj = val.toObject();
 
         if(obj["accessType"] == type) { //Нашли объект с нужным типом
-            output.append("\t"+ QString(obj["addressDec"].toString()) + ", 0,   //varName\n"); //адрес регистра, 0, varName //TODO: название переменной тоже писать
+            output.append("\t"+ QString(obj["addressDec"].toString()) + ", 0,   //" + QString(obj["varName"].toString()) + "\n"); //адрес регистра, 0, varName //TODO: название переменной тоже писать
         }
     }
 

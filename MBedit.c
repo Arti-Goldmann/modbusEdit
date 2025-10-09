@@ -1,3 +1,5 @@
+//Файл сгенерирован автоматически.
+#include "MBedit.h"
 void MBhandlerHR_R(TModbusSlaveDictObj* reg)
 {
 	switch (reg->mbIndex)
@@ -55,17 +57,17 @@ void MBhandlerIR_R(TModbusSlaveDictObj* reg)
 // R/W-переменные.
 TModbusSlaveDictObj*mbodHR[]=
 {
-	1, 0,   //varName
-	3, 0,   //varName
-	5, 0,   //varName
+	1, 0,   //varName1
+	3, 0,   //varName3
+	5, 0,   //varName5
 	0, 0xFFFF   //конец
 };
 
 TModbusSlaveDictObj*mbodIR[]=
 {
-	2, 0,   //varName
-	4, 0,   //varName
-	6, 0,   //varName
+	2, 0,   //varName2
+	4, 0,   //varName4
+	6, 0,   //varName6
 	0, 0xFFFF   //конец
 };
 
