@@ -362,12 +362,25 @@ void MainWindow::showContextMenuForTable(const QPoint &pos, QTableWidget* table)
     QAction *deleteAction = contextMenu.addAction("Удалить");
     QAction *addAction = contextMenu.addAction("Добавить");
 
+    QAction *commonType = nullptr;
+    QAction *userType = nullptr;
+    if(contextMenuActiveTable == ui->tableWidget) {// Если основная таблица с данными
+        QMenu *subMenu = contextMenu.addMenu("Тип параметра");
+        commonType = subMenu->addAction("Обычный");
+        userType = subMenu->addAction("Пользовательский");
+    }
+
+
     QAction *selectedAction = contextMenu.exec(table->mapToGlobal(pos));
 
     if (selectedAction == deleteAction) {
         deleteRow();
     } else if (selectedAction == addAction) {
         addRow();
+    } else if (commonType && selectedAction == commonType) {
+        setRowType("commonType");
+    } else if(userType && selectedAction == userType) {
+        setRowType("userType");
     }
 }
 
@@ -394,10 +407,35 @@ void MainWindow::addRow()
     }
 }
 
+void MainWindow::setRowType(const QString& rowType) {
+
+    if (!contextMenuActiveTable) return;
+
+    //Добавляем информацию о строке в таблицу, в ячейку "Переменная / значение"
+    int rowIndex = contextMenuClickRow;
+    int columnIndex = TABLE_HEADERS.indexOf("Переменная / значение");
+    if (columnIndex == -1) return;
+
+    QTableWidgetItem *item = contextMenuActiveTable->item(rowIndex, columnIndex);
+    if (!item) {
+        item = new QTableWidgetItem();
+        contextMenuActiveTable->setItem(rowIndex, columnIndex, item);
+    }
+    item->setData(Qt::UserRole, rowType);
+
+    if(rowType == "commonType") {
+        item->setText("");
+        item->setFlags(item->flags() | Qt::ItemIsEditable); // делаем редактируемым
+    } else if (rowType == "userType") {
+        item->setText("*** PASTE YOUR CODE ***");
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable); // убираем возможность редактирования
+    }
+}
+
 void MainWindow::onBaseValuesChanged()
 {
     // Пересоздаем делегат для базовых величин с обновленными данными
     delete baseValueDelegate;
     baseValueDelegate = new DynamicComboBoxDelegate(ui->tableWidgetBaseValues, 0, this);
-    ui->tableWidget->setItemDelegateForColumn(7, baseValueDelegate);
+    ui->tableWidget->setItemDelegateForColumn(TABLE_HEADERS.indexOf("Базовая величина"), baseValueDelegate);
 }

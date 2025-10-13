@@ -46,6 +46,7 @@ private:
     bool saveProfileHandler(bool isSaveAs);
     void deleteRow();
     void addRow();
+    void setRowType(const QString&);
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
     
     int contextMenuClickRow = -1;

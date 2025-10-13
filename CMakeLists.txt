@@ -74,3 +74,10 @@ install(TARGETS modbusEdit
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(modbusEdit)
 endif()
+
+# Run deploy.bat after successful build
+add_custom_command(TARGET modbusEdit POST_BUILD
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/deploy.bat
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Running deployment script..."
+)
