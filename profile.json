@@ -32,7 +32,9 @@
             "gain": "0.1",
             "groupName": "test1",
             "note": "test_note",
-            "varName": "varName1"
+            "varName": "varName1",
+            "paramType": "userType",
+            "userCode": "while(0) {}"
         },
         {
             "accessType": "R",
@@ -43,7 +45,9 @@
             "gain": "0.2",
             "groupName": "test2",
             "note": "test_note",
-            "varName": "varName2"
+            "varName": "varName2",
+            "paramType": "commonType",
+            "userCode": ""
         },
         {
             "accessType": "RW",
@@ -54,7 +58,9 @@
             "gain": "0.3",
             "groupName": "test3",
             "note": "test_note",
-            "varName": "varName3"
+            "varName": "varName3",
+            "paramType": "userType",
+            "userCode": "while(0) {}"
         },
         {
             "accessType": "R",
@@ -65,7 +71,9 @@
             "gain": "0.1",
             "groupName": "test4",
             "note": "test_note",
-            "varName": "varName4"
+            "varName": "varName4",
+            "paramType": "commonType",
+            "userCode": ""
         },
         {
             "accessType": "RW",
@@ -76,7 +84,9 @@
             "gain": "0.2",
             "groupName": "test5",
             "note": "test_note",
-            "varName": "varName5"
+            "varName": "varName5",
+            "paramType": "userType",
+            "userCode": "while(0) {}"
         },
         {
             "accessType": "R",
@@ -87,7 +97,9 @@
             "gain": "0.3",
             "groupName": "test6",
             "note": "test_note",
-            "varName": "varName6"
+            "varName": "varName6",
+            "paramType": "commonType",
+            "userCode": ""
         }
     ]
 }

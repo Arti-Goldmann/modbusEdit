@@ -113,6 +113,9 @@ void MainWindow::setupUI(){
     connect(ui->tableWidget, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClickedData);
 
+    connect(ui->tableWidget, &QTableWidget::cellDoubleClicked,
+            this, &MainWindow::onCellDoubleClickedData);
+
     connect(ui->tableWidgetBaseValues, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClickedBaseValues);
 
@@ -167,7 +170,7 @@ bool MainWindow::setGenerationPath() {
     return true;
 }
 
-void MainWindow::fillTable(const QJsonArray& data, const QStringList& keys, QTableWidget* table) {
+void MainWindow::fillTable(const QJsonArray& data, const QStringList& mainKeys, QTableWidget* table, bool configRow) {
     // Заполняем таблицу с данными
     table->setRowCount(0);
 
@@ -180,10 +183,24 @@ void MainWindow::fillTable(const QJsonArray& data, const QStringList& keys, QTab
         table->insertRow(rowCounter);
 
         //Получаем строку из объекта json и кладем в соответсвующую колонку
-        for(int col = 0; col < keys.size(); col++) {
-            QString str = obj[keys[col]].toString();
+        for(int col = 0; col < mainKeys.size(); col++) {
+            QString key = mainKeys[col];
+            QString str = obj[key].toString();
             table->setItem(rowCounter, col, new QTableWidgetItem(str));
         }
+
+        if(configRow) { //Конифгурируем строки
+            QString paramType = obj["paramType"].toString();
+
+            if(paramType == "commonType") { //Встяавляем в соответсвующую колонку название перемеенной
+                QString varName = obj["varName"].toString();
+                setRowType(paramType, rowCounter, table, varName);
+            } else if(paramType == "userType") { //Пользовательская ячейка. Выставляем PASTE YOUR CODE в ячейке
+                QString userCode = obj["userCode"].toString();
+                setRowType(paramType, rowCounter, table, userCode);
+            }
+        }
+
         rowCounter++;
     }
 
@@ -202,7 +219,7 @@ bool MainWindow::loadProfile() {
     QJsonArray data = profileResultOpt.value().data;
     QJsonArray baseValues = profileResultOpt.value().baseValues;
 
-    fillTable(data, jsonProfileManager.COLUMN_KEYS, ui->tableWidget);
+    fillTable(data, jsonProfileManager.COLUMN_KEYS, ui->tableWidget, true);
     fillTable(baseValues, jsonProfileManager.BASE_VALUES_KEYS, ui->tableWidgetBaseValues);
 
     QString profilePath = jsonProfileManager.getCurrentProfilePath();
@@ -319,6 +336,98 @@ void MainWindow::onCellClickedData(int row, int col)
     }
 }
 
+// Реализация слота для дабл клика по ячейке
+void MainWindow::onCellDoubleClickedData(int row, int col)
+{
+    qDebug() << "Обработка двойного клика";
+
+    //Не последняя строка
+    if (row != ui->tableWidget->rowCount() - 1) {
+        col = TABLE_HEADERS.indexOf("Переменная / значение");
+
+        qDebug() << "col: " << col;
+
+        // Проверяем, что это столбец "Переменная/значение" и тип строки "userType"
+        if (col == -1) return;
+
+        qDebug() << "Нужная колонка";
+
+        QTableWidgetItem* rootItem = ui->tableWidget->item(row, 0); //Инфа в 0 ячейке
+        QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
+
+        qDebug() << "rowType: " << rowType;
+
+        if (rowType == "userType") {
+            qDebug() << "Нужный тип";
+
+            // Получаем текущий код
+            QString currentCode = rootItem->data(Qt::UserRole + 1).toString();
+            if (currentCode.isEmpty()) {
+                currentCode = "// Введите ваш код на C здесь\n";
+            }
+
+            // Создаем диалог
+            QDialog* dialog = new QDialog(this);
+            dialog->setWindowTitle("Редактор кода C");
+            dialog->setModal(true);
+            dialog->resize(600, 400);
+
+            // Создаем QPlainTextEdit
+            QPlainTextEdit* textEdit = new QPlainTextEdit(dialog);
+            textEdit->setPlainText(currentCode);
+
+            // Настраиваем шрифт
+            QFont font("Consolas", 10);
+            if (!font.exactMatch()) {
+                font.setFamily("Courier New");
+            }
+            textEdit->setFont(font);
+
+            // Настройки редактора
+            textEdit->setTabStopDistance(40);
+            textEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
+
+            // Кнопки
+            QPushButton* okButton = new QPushButton("OK", dialog);
+            QPushButton* cancelButton = new QPushButton("Отмена", dialog);
+
+            // Подключаем кнопки
+            connect(okButton, &QPushButton::clicked, dialog, &QDialog::accept);
+            connect(cancelButton, &QPushButton::clicked, dialog, &QDialog::reject);
+
+            // Компоновка
+            QVBoxLayout* mainLayout = new QVBoxLayout(dialog);
+            QHBoxLayout* buttonLayout = new QHBoxLayout();
+
+            mainLayout->addWidget(new QLabel("Введите код на языке C:"));
+            mainLayout->addWidget(textEdit);
+
+            buttonLayout->addStretch();
+            buttonLayout->addWidget(okButton);
+            buttonLayout->addWidget(cancelButton);
+            mainLayout->addLayout(buttonLayout);
+
+            // Показываем диалог
+            if (dialog->exec() == QDialog::Accepted) {
+                QString newCode = textEdit->toPlainText();
+
+                // Сохраняем код
+                rootItem->setData(Qt::UserRole + 1, newCode);
+
+                // Обновляем отображение в ячейке
+                QTableWidgetItem* item = ui->tableWidget->item(row, col);
+
+                if (newCode.trimmed().isEmpty() || newCode.trimmed() == "// Введите ваш код на C здесь") {
+                    if(item) item->setText("*** PASTE YOUR CODE ***");
+                } else {
+                    if(item) item->setText("*** USER CODE ***");
+                }
+            }
+
+            dialog->deleteLater();
+        }
+    }
+}
 void MainWindow::onCellClickedBaseValues(int row, int col)
 {
     if (row == ui->tableWidgetBaseValues->rowCount() - 1) {
@@ -378,9 +487,9 @@ void MainWindow::showContextMenuForTable(const QPoint &pos, QTableWidget* table)
     } else if (selectedAction == addAction) {
         addRow();
     } else if (commonType && selectedAction == commonType) {
-        setRowType("commonType");
+        setRowType("commonType", contextMenuClickRow, contextMenuActiveTable);
     } else if(userType && selectedAction == userType) {
-        setRowType("userType");
+        setRowType("userType", contextMenuClickRow, contextMenuActiveTable);
     }
 }
 
@@ -407,28 +516,41 @@ void MainWindow::addRow()
     }
 }
 
-void MainWindow::setRowType(const QString& rowType) {
+void MainWindow::setRowType(const QString& rowType, int rowIndex, QTableWidget* table, const QString& data) {
 
-    if (!contextMenuActiveTable) return;
+    if (!table) return;
 
-    //Добавляем информацию о строке в таблицу, в ячейку "Переменная / значение"
-    int rowIndex = contextMenuClickRow;
+    //Сохраняем инфу с типом параметра в 0 колонке
+    QTableWidgetItem *itemRoot = table->item(rowIndex, 0);
+    if (!itemRoot) {
+        itemRoot = new QTableWidgetItem();
+        table->setItem(rowIndex, 0, itemRoot);
+    }
+    itemRoot->setData(Qt::UserRole, rowType);
+
     int columnIndex = TABLE_HEADERS.indexOf("Переменная / значение");
     if (columnIndex == -1) return;
 
-    QTableWidgetItem *item = contextMenuActiveTable->item(rowIndex, columnIndex);
+    //В колонку "Переменная / значение" устаналиваем текст и настройки в зависимости от типа
+    QTableWidgetItem *item = table->item(rowIndex, columnIndex);
     if (!item) {
         item = new QTableWidgetItem();
-        contextMenuActiveTable->setItem(rowIndex, columnIndex, item);
+        table->setItem(rowIndex, columnIndex, item);
     }
-    item->setData(Qt::UserRole, rowType);
 
     if(rowType == "commonType") {
-        item->setText("");
+        item->setText(data);
         item->setFlags(item->flags() | Qt::ItemIsEditable); // делаем редактируемым
+
+        qDebug() << "Записали для строки " << rowIndex << "переменную: " << data;
     } else if (rowType == "userType") {
         item->setText("*** PASTE YOUR CODE ***");
         item->setFlags(item->flags() & ~Qt::ItemIsEditable); // убираем возможность редактирования
+
+        //В корневой элемент сохраняем пользовательский код
+        itemRoot->setData(Qt::UserRole + 1, data);
+
+        qDebug() << "Сохранили для строки " << rowIndex << "код: " << data;
     }
 }
 

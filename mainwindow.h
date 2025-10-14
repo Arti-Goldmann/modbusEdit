@@ -13,6 +13,7 @@
 #include <QSettings>
 #include <QFileInfo>
 #include <QDir>
+#include <QPlainTextEdit>
 
 #include "outfilegenerator.h"
 #include "jsonprofilemanager.h"
@@ -40,13 +41,13 @@ private:
     void setupUI();
     void setupTable(QTableWidget*);
     void addPlusRow(QTableWidget*);
-    void fillTable(const QJsonArray& data, const QStringList& keys, QTableWidget* table);
+    void fillTable(const QJsonArray& data, const QStringList& mainKeys, QTableWidget* table, bool configRow = false);
     
     void processError(const QString& message, const QString& title);
     bool saveProfileHandler(bool isSaveAs);
     void deleteRow();
     void addRow();
-    void setRowType(const QString&);
+    void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QString& varName = "");
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
     
     int contextMenuClickRow = -1;
@@ -75,6 +76,7 @@ private:
 private slots:
     void onSelectionChanged();
     void onCellClickedData(int row, int col);
+    void onCellDoubleClickedData(int row, int col);
     void onCellClickedBaseValues(int row, int col);
     bool loadProfile();
     bool saveProfile();
