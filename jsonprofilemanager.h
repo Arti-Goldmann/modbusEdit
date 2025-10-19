@@ -41,8 +41,12 @@ public:
     bool hasActiveProfile() const { return !currentProfilePath.isEmpty(); }
 
     //Ключи json файла
-    const QStringList COLUMN_KEYS = {"groupName", "accessType", "dataType", "gain",
+    //Ключи параметров, которые соотвествуют колонкам таблицы
+    const QStringList DATA_MAIN_KEYS = {"groupName", "accessType", "dataType", "gain",
                                      "addressDec", "addressHex", "varName", "base", "note"};
+
+    //Ключи параметров, которые есть у строки, но в таблице не отображены
+    const QStringList DATA_HIDDEN_KEYS = {"paramType", "userCode"};
 
     const QStringList BASE_VALUES_KEYS = {"baseName", "units", "IQformat", "baseValue", "note"};
 
@@ -57,7 +61,7 @@ private:
     std::optional<QJsonObject> readJsonObj(const QString& filePath);
     std::optional<QJsonArray> readJsonArr(const QString& filePath, const QString& field);
     std::optional<TProfileResult> readProfileFormPath(const QString& profilePath); // загрузка
-    QJsonArray tableToJsonArray(QTableWidget* table, const QStringList& keys);
+    QJsonArray tableToJsonArray(QTableWidget* table, const QStringList&, const QStringList& = {});
 
     // Работа с настройками
     QString getLastDirectory() const;

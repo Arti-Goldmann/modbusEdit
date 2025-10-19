@@ -123,15 +123,38 @@ bool JsonProfileManager::saveProfileAs(QTableWidget* tableData, QTableWidget* ta
     return saveProfile(tableData, tableBaseValues);
 }
 
-QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStringList& keys) {
+QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStringList& mainKeys, const QStringList& additionalKeys) {
     QJsonArray result;
 
     // Проходим по всем строкам, кроме последней (строка с "+")
     for(int row = 0; row < table->rowCount() - 1; row++) {
         QJsonObject obj;
-        for(int col = 0; col < keys.size(); col++) {
+        for(int col = 0; col < table->columnCount(); col++) {
             QTableWidgetItem* item = table->item(row, col);
-            obj[keys[col]] = item ? item->text() : "";
+            obj[mainKeys[col]] = item ? item->text() : "";
+        }
+
+        //TODO: нвдо сделать ошибки, если условия не выполняеются
+
+        //Дополнительные ключи json
+        if(!additionalKeys.isEmpty()) {
+            QTableWidgetItem* rootItem = table->item(row, 0); //Инфа в 0 ячейке
+            if(rootItem) {
+                QString rowType = rootItem->data(Qt::UserRole).toString();
+                if(!additionalKeys.contains("paramType")) return {};
+                if(!additionalKeys.contains("userCode")) return {};
+
+                obj["paramType"] = rowType;
+
+                if (rowType == "userType") {
+                    // Получаем код пользователя
+                    QString currentUserCode = rootItem->data(Qt::UserRole + 1).toString();
+                    obj["userCode"] = currentUserCode;
+                    obj["varName"] = "";
+                } else if(rowType == "commonType") {
+                    obj["userCode"] = "";
+                }
+            }
         }
         result.append(obj);
     }
@@ -156,7 +179,7 @@ bool JsonProfileManager::saveProfile(QTableWidget* tableData, QTableWidget* tabl
 
         QJsonObject rootObj;
         rootObj["baseValues"] = tableToJsonArray(tableBaseValues, BASE_VALUES_KEYS);
-        rootObj["data"] = tableToJsonArray(tableData, COLUMN_KEYS);
+        rootObj["data"] = tableToJsonArray(tableData, DATA_MAIN_KEYS, DATA_HIDDEN_KEYS);
 
         QJsonDocument doc(rootObj);
         QByteArray byteArr = doc.toJson(QJsonDocument::Indented);

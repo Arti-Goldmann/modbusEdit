@@ -96,9 +96,14 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
             //Начало switch case
             output.append(QString("\t\tcase %1:\n").arg(obj["addressDec"].toString().toInt())); //Пишем case и адрес регистра
 
-            //Формируем функцию на чтение или запись
-            QString switchCaseCode = (readOrWrite == FOR_READ) ? funcHandlerGen_R(funcName, obj, IQformat, baseValue):
+            QString switchCaseCode = "";
+            if(obj["paramType"] == "commonType") {
+                //Формируем функцию на чтение или запись
+                switchCaseCode = (readOrWrite == FOR_READ) ? funcHandlerGen_R(funcName, obj, IQformat, baseValue):
                                                                  funcHandlerGen_W(funcName, obj, IQformat, baseValue);
+            } else if(obj["paramType"] == "userType") {
+                switchCaseCode = "\t\t\t" + obj["userCode"].toString() + "\n";
+            }
 
             output.append(switchCaseCode);
 

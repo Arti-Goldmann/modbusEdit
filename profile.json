@@ -20,6 +20,13 @@
             "baseValue": "drv_params.speed_nom",
             "note": "test3",
             "units": "об/мин"
+        },
+        {
+            "IQformat": "10.6",
+            "baseName": "Тест",
+            "baseValue": "drv_params.test",
+            "note": "test4",
+            "units": "об"
         }
     ],
     "data": [
@@ -32,9 +39,9 @@
             "gain": "0.1",
             "groupName": "test1",
             "note": "test_note",
-            "varName": "varName1",
             "paramType": "userType",
-            "userCode": "while(0) {}"
+            "userCode": "while(0) {}",
+            "varName": ""
         },
         {
             "accessType": "R",
@@ -45,9 +52,9 @@
             "gain": "0.2",
             "groupName": "test2",
             "note": "test_note",
-            "varName": "varName2",
             "paramType": "commonType",
-            "userCode": ""
+            "userCode": "",
+            "varName": "varName2"
         },
         {
             "accessType": "RW",
@@ -58,9 +65,22 @@
             "gain": "0.3",
             "groupName": "test3",
             "note": "test_note",
-            "varName": "varName3",
             "paramType": "userType",
-            "userCode": "while(0) {}"
+            "userCode": "while(0) {}",
+            "varName": ""
+        },
+        {
+            "accessType": "R",
+            "addressDec": "10",
+            "addressHex": "0xA0A0",
+            "base": "Тест",
+            "dataType": "int16",
+            "gain": "0.4",
+            "groupName": "TEST",
+            "note": "test_note",
+            "paramType": "userType",
+            "userCode": "std::out << \"Hello world\";",
+            "varName": ""
         },
         {
             "accessType": "R",
@@ -71,9 +91,9 @@
             "gain": "0.1",
             "groupName": "test4",
             "note": "test_note",
-            "varName": "varName4",
             "paramType": "commonType",
-            "userCode": ""
+            "userCode": "",
+            "varName": "varName4"
         },
         {
             "accessType": "RW",
@@ -84,9 +104,9 @@
             "gain": "0.2",
             "groupName": "test5",
             "note": "test_note",
-            "varName": "varName5",
             "paramType": "userType",
-            "userCode": "while(0) {}"
+            "userCode": "",
+            "varName": ""
         },
         {
             "accessType": "R",
@@ -97,9 +117,21 @@
             "gain": "0.3",
             "groupName": "test6",
             "note": "test_note",
-            "varName": "varName6",
             "paramType": "commonType",
-            "userCode": ""
+            "userCode": "",
+            "varName": "varName6"
+        },
+        {
+            "accessType": "RW",
+            "addressDec": "7",
+            "addressHex": "0xA0A0",
+            "base": "Тест",
+            "dataType": "int16",
+            "gain": "0.5",
+            "groupName": "test7",
+            "note": "test_note",
+            "paramType": "",
+            "varName": "varName7"
         }
     ]
 }
