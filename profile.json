@@ -40,7 +40,8 @@
             "groupName": "test1",
             "note": "test_note",
             "paramType": "userType",
-            "userCode": "while(0) {}",
+            "userCode_R": "while(0) {};",
+            "userCode_W": "while(1) {};",
             "varName": ""
         },
         {
@@ -52,8 +53,9 @@
             "gain": "0.2",
             "groupName": "test2",
             "note": "test_note",
-            "paramType": "commonType",
-            "userCode": "",
+            "paramType": "userType",
+            "userCode_R": "while(0) {};",
+            "userCode_W": "",
             "varName": "varName2"
         },
         {
@@ -66,20 +68,8 @@
             "groupName": "test3",
             "note": "test_note",
             "paramType": "userType",
-            "userCode": "while(0) {}",
-            "varName": ""
-        },
-        {
-            "accessType": "R",
-            "addressDec": "10",
-            "addressHex": "0xA0A0",
-            "base": "Тест",
-            "dataType": "int16",
-            "gain": "0.4",
-            "groupName": "TEST",
-            "note": "test_note",
-            "paramType": "userType",
-            "userCode": "std::out << \"Hello world\";",
+            "userCode_R": "",
+            "userCode_W": "",
             "varName": ""
         },
         {
@@ -92,7 +82,8 @@
             "groupName": "test4",
             "note": "test_note",
             "paramType": "commonType",
-            "userCode": "",
+            "userCode_R": "",
+            "userCode_W": "",
             "varName": "varName4"
         },
         {
@@ -104,9 +95,10 @@
             "gain": "0.2",
             "groupName": "test5",
             "note": "test_note",
-            "paramType": "userType",
-            "userCode": "",
-            "varName": ""
+            "paramType": "commonType",
+            "userCode_R": "",
+            "userCode_W": "",
+            "varName": "varName5"
         },
         {
             "accessType": "R",
@@ -118,20 +110,9 @@
             "groupName": "test6",
             "note": "test_note",
             "paramType": "commonType",
-            "userCode": "",
+            "userCode_R": "",
+            "userCode_W": "",
             "varName": "varName6"
-        },
-        {
-            "accessType": "RW",
-            "addressDec": "7",
-            "addressHex": "0xA0A0",
-            "base": "Тест",
-            "dataType": "int16",
-            "gain": "0.5",
-            "groupName": "test7",
-            "note": "test_note",
-            "paramType": "",
-            "varName": "varName7"
         }
     ]
 }

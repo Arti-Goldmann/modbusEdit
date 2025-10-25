@@ -1,0 +1,146 @@
+{
+    "baseValues": [
+        {
+            "IQformat": "16.0",
+            "baseName": "Номинальный ток",
+            "baseValue": "drv_params.Inom",
+            "note": "test1",
+            "units": "A"
+        },
+        {
+            "IQformat": "10.6",
+            "baseName": "Номинальное напряжение",
+            "baseValue": "drv_params.Unom",
+            "note": "test2",
+            "units": "В"
+        },
+        {
+            "IQformat": "16.0",
+            "baseName": "Номинальная скорость",
+            "baseValue": "drv_params.speed_nom",
+            "note": "test3",
+            "units": "об/мин"
+        },
+        {
+            "IQformat": "10.6",
+            "baseName": "Тест",
+            "baseValue": "drv_params.test",
+            "note": "test4",
+            "units": "об"
+        }
+    ],
+    "data": [
+        {
+            "accessType": "RW",
+            "addressDec": "1",
+            "addressHex": "0xA0A0",
+            "base": "Номинальная скорость",
+            "dataType": "int16",
+            "gain": "0.1",
+            "groupName": "test1",
+            "note": "test_note",
+            "paramType": "userType",
+            "userCode_R": "while(0) {};",
+            "userCode_W": "while(1) {};",
+            "varName": ""
+        },
+        {
+            "accessType": "R",
+            "addressDec": "2",
+            "addressHex": "0xA0A0",
+            "base": "Номинальная скорость",
+            "dataType": "int16",
+            "gain": "0.2",
+            "groupName": "test2",
+            "note": "test_note",
+            "paramType": "userType",
+            "userCode_R": "while(0) {};",
+            "userCode_W": "",
+            "varName": ""
+        },
+        {
+            "accessType": "RW",
+            "addressDec": "3",
+            "addressHex": "0xA0A0",
+            "base": "Номинальное напряжение",
+            "dataType": "Uint16",
+            "gain": "0.3",
+            "groupName": "test3",
+            "note": "test_note",
+            "paramType": "userType",
+            "userCode_R": "",
+            "userCode_W": "",
+            "varName": ""
+        },
+        {
+            "accessType": "R",
+            "addressDec": "4",
+            "addressHex": "0xA0A0",
+            "base": "Номинальное напряжение",
+            "dataType": "int16",
+            "gain": "0.1",
+            "groupName": "test4",
+            "note": "test_note",
+            "paramType": "commonType",
+            "userCode_R": "",
+            "userCode_W": "",
+            "varName": "varName4"
+        },
+        {
+            "accessType": "RW",
+            "addressDec": "5",
+            "addressHex": "0xA0A0",
+            "base": "Номинальный ток",
+            "dataType": "int16",
+            "gain": "0.2",
+            "groupName": "test5",
+            "note": "test_note",
+            "paramType": "commonType",
+            "userCode_R": "",
+            "userCode_W": "",
+            "varName": "varName5"
+        },
+        {
+            "accessType": "R",
+            "addressDec": "6",
+            "addressHex": "0xA0A0",
+            "base": "Номинальный ток",
+            "dataType": "Uint16",
+            "gain": "0.3",
+            "groupName": "test6",
+            "note": "test_note",
+            "paramType": "commonType",
+            "userCode_R": "",
+            "userCode_W": "",
+            "varName": "varName6"
+        },
+        {
+            "accessType": "RW",
+            "addressDec": "7",
+            "addressHex": "0xA0A0",
+            "base": "Тест",
+            "dataType": "Uint16",
+            "gain": "0.4",
+            "groupName": "test7",
+            "note": "",
+            "paramType": "userType",
+            "userCode_R": "test code R",
+            "userCode_W": "test code W",
+            "varName": ""
+        },
+        {
+            "accessType": "R",
+            "addressDec": "8",
+            "addressHex": "0xA0A0",
+            "base": "Номинальный ток",
+            "dataType": "int16",
+            "gain": "0.5",
+            "groupName": "test8",
+            "note": "",
+            "paramType": "userType",
+            "userCode_R": "test code for only R",
+            "userCode_W": "",
+            "varName": ""
+        }
+    ]
+}

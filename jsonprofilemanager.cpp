@@ -140,19 +140,27 @@ QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStri
         if(!additionalKeys.isEmpty()) {
             QTableWidgetItem* rootItem = table->item(row, 0); //Инфа в 0 ячейке
             if(rootItem) {
-                QString rowType = rootItem->data(Qt::UserRole).toString();
+                QVariant data = rootItem->data(Qt::UserRole);
+                QString rowType = data.isValid() ? data.toString() : "";
+
                 if(!additionalKeys.contains("paramType")) return {};
-                if(!additionalKeys.contains("userCode")) return {};
+                if(!additionalKeys.contains("userCode_R")) return {};
+                if(!additionalKeys.contains("userCode_W")) return {};
 
                 obj["paramType"] = rowType;
 
                 if (rowType == "userType") {
                     // Получаем код пользователя
-                    QString currentUserCode = rootItem->data(Qt::UserRole + 1).toString();
-                    obj["userCode"] = currentUserCode;
+                    data = rootItem->data(Qt::UserRole + 1 + R);
+                    QString userCode_R = data.isValid() ? data.toString() : "";
+                    data = rootItem->data(Qt::UserRole + 1 + W);
+                    QString userCode_W = data.isValid() ? data.toString() : "";
+                    obj["userCode_R"] = userCode_R;
+                    obj["userCode_W"] = userCode_W;
                     obj["varName"] = "";
                 } else if(rowType == "commonType") {
-                    obj["userCode"] = "";
+                    obj["userCode_R"] = "";
+                    obj["userCode_W"] = "";
                 }
             }
         }

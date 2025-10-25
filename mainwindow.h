@@ -47,7 +47,7 @@ private:
     bool saveProfileHandler(bool isSaveAs);
     void deleteRow();
     void addRow();
-    void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QString& varName = "");
+    void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QVector<QString>& data = {}, const QString& accessType = "R");
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
     
     int contextMenuClickRow = -1;
@@ -58,6 +58,11 @@ private:
     ComboBoxDelegate *dataTypeDelegate;
     DynamicComboBoxDelegate *baseValueDelegate;
     ComboBoxDelegate *iqFormatDelegate;
+
+    typedef enum  {
+        R = 0, //Чтение
+        W = 1, //Запись
+    } TaccessVarieties;
 
     //Названия колонок таблицы с данными
     const QStringList TABLE_HEADERS = {

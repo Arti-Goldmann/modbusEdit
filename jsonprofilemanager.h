@@ -30,7 +30,10 @@ public:
     bool saveProfile(QTableWidget* tableData, QTableWidget* tableBaseValues);   // Сохранить в текущий файл
     bool saveProfileAs(QTableWidget* tableData, QTableWidget* tableBaseValues); // Сохранить как...
 
-
+    typedef enum  {
+        R = 0, //Чтение
+        W = 1, //Запись
+    } TaccessVarieties;
 
     // Валидация
     bool validateProfile(const QJsonArray& data);
@@ -46,7 +49,7 @@ public:
                                      "addressDec", "addressHex", "varName", "base", "note"};
 
     //Ключи параметров, которые есть у строки, но в таблице не отображены
-    const QStringList DATA_HIDDEN_KEYS = {"paramType", "userCode"};
+    const QStringList DATA_HIDDEN_KEYS = {"paramType", "userCode_R", "userCode_W"};
 
     const QStringList BASE_VALUES_KEYS = {"baseName", "units", "IQformat", "baseValue", "note"};
 

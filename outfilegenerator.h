@@ -51,7 +51,7 @@ private:
     QString funcHandlerGen(const QString& funcName, const QString&type, const QJsonArray& data, const QJsonArray& baseValues, TdirectionType readOrWrite);
     QString funcHandlerGen_R(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue);
     QString funcHandlerGen_W(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue);
-    QString arrayGen(const QString& arrName, const QString&type, const QJsonArray& data);
+    QString arrayGen(const QString& arrName, const QString&targetType, const QJsonArray& data);
     void setError(const QString& message);
     QString IQformatToBaseQ(const QString& str);
 };
