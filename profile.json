@@ -56,7 +56,7 @@
             "paramType": "userType",
             "userCode_R": "while(0) {};",
             "userCode_W": "",
-            "varName": "varName2"
+            "varName": ""
         },
         {
             "accessType": "RW",
