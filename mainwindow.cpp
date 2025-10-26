@@ -347,7 +347,7 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
 bool MainWindow::startGeneration(){
 
     // Создаем диалог прогресса
-    progressDialog = new QProgressDialog("Генерация файла...", QString(), 0, 0, this);
+    progressDialog = new QProgressDialog("Сохранение файла...", QString(), 0, 0, this);
     progressDialog->setWindowModality(Qt::WindowModal);
     progressDialog->setMinimumDuration(0);
     progressDialog->setCancelButton(nullptr);
@@ -362,6 +362,9 @@ bool MainWindow::startGeneration(){
         progressDialog->deleteLater();
         return false;
     }
+
+    progressDialog->setLabelText("Чтение профиля...");
+    QApplication::processEvents();
 
     auto resultReadJsonOpt = jsonProfileManager.readProfile();
 
@@ -388,6 +391,9 @@ bool MainWindow::startGeneration(){
         processError(QString("Не выбран путь генерации файла"), "Ошибка генерации файла");
         return false;
     }
+
+    progressDialog->setLabelText("Генерация файла...");
+    QApplication::processEvents();
 
     // Создаем watcher для отслеживания завершения
     fileGenWatcher = new QFutureWatcher<bool>(this);
@@ -733,8 +739,6 @@ void MainWindow::setRowType(const QString& rowType, int rowIndex, QTableWidget* 
         item->setText(varName); //Переменная хранится в 0 элементе
         item->setFlags(item->flags() | Qt::ItemIsEditable); // делаем редактируемым
 
-        qDebug() << "Записали для строки " << rowIndex << "переменную: " << data;
-
     } else if (rowType == "userType") {
         bool isEmpty = true;
         //В корневой элемент сохраняем пользовательский код
@@ -761,8 +765,6 @@ void MainWindow::setRowType(const QString& rowType, int rowIndex, QTableWidget* 
             item->setForeground(QBrush(Qt::green));
         }
         item->setFlags(item->flags() & ~Qt::ItemIsEditable); // убираем возможность редактирования
-
-        qDebug() << "Сохранили для строки " << rowIndex << "код: " << data;
     }
 }
 
