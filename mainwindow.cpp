@@ -346,14 +346,28 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
 bool MainWindow::startGeneration(){
 
+    // Создаем диалог прогресса
+    progressDialog = new QProgressDialog("Генерация файла...", QString(), 0, 0, this);
+    progressDialog->setWindowModality(Qt::WindowModal);
+    progressDialog->setMinimumDuration(0);
+    progressDialog->setCancelButton(nullptr);
+    progressDialog->show();
+
+    // Принудительно обрабатываем события, чтобы диалог отрисовался
+    QApplication::processEvents();
+
     //Нужно сначала сохранить изменения в json перед тем как генерировать
     if(!saveProfile()) {
+        progressDialog->close();
+        progressDialog->deleteLater();
         return false;
     }
 
     auto resultReadJsonOpt = jsonProfileManager.readProfile();
 
     if (!resultReadJsonOpt.has_value()) {
+        progressDialog->close();
+        progressDialog->deleteLater();
         processError(jsonProfileManager.getLastError(), "Ошибка генерации файла");
         return false;
     }
@@ -362,18 +376,61 @@ bool MainWindow::startGeneration(){
     QJsonArray baseValues = resultReadJsonOpt.value().baseValues;
 
     if(data.isEmpty() || baseValues.isEmpty()) {
+        progressDialog->close();
+        progressDialog->deleteLater();
         processError(QString("Пустой профиль: %1").arg(jsonProfileManager.getCurrentProfilePath()), "Ошибка генерации файла");
         return false;
     }
 
     if(!outFileGenerator.hasActiveGenFile()) {
+        progressDialog->close();
+        progressDialog->deleteLater();
         processError(QString("Не выбран путь генерации файла"), "Ошибка генерации файла");
         return false;
     }
 
-    if(outFileGenerator.generate(data, baseValues)) {
+    // Создаем watcher для отслеживания завершения
+    fileGenWatcher = new QFutureWatcher<bool>(this);
+
+    // Подключаем сигнал завершения
+    connect(fileGenWatcher, &QFutureWatcher<bool>::finished,
+            this, &MainWindow::onGenerationFinished);
+
+    // Запускаем генерацию в фоновом потоке
+    QFuture<bool> future = QtConcurrent::run(
+        genFileInBackground,
+        &outFileGenerator,
+        data,
+        baseValues
+    );
+
+    fileGenWatcher->setFuture(future);
+
+    return true;
+}
+
+// Статическая функция для генерации файла в фоновом потоке
+bool MainWindow::genFileInBackground(OutFileGenerator* generator, QJsonArray data, QJsonArray baseValues) {
+    // Эта функция выполняется в отдельном потоке!
+    // Здесь НЕ ДОЛЖНО быть работы с UI!
+    return generator->generate(data, baseValues);
+}
+
+bool MainWindow::onGenerationFinished(){
+
+    // Получаем результат из фонового потока
+    bool success = fileGenWatcher->result();
+
+    // Закрываем диалог прогресса
+    progressDialog->close();
+    progressDialog->deleteLater();
+
+    // Очищаем watcher
+    fileGenWatcher->deleteLater();
+
+    if(success) {
         statusBar()->showMessage("Файл успешно сгенерирован", 5000);
-        
+
         QMessageBox msgBox;
         msgBox.setIcon(QMessageBox::Information);
         msgBox.setWindowIcon(QIcon(":/ModBus.ico"));
@@ -388,6 +445,7 @@ bool MainWindow::startGeneration(){
 
     return true;
 }
+
 
 void MainWindow::addPlusRow(QTableWidget* table) {
     int row = table->rowCount();

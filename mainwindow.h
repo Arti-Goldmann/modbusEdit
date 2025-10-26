@@ -63,7 +63,7 @@ private:
     // Статическая функция для загрузки профиля в фоновом потоке
     static std::optional<JsonProfileManager::TProfileResult> loadProfileInBackground(JsonProfileManager* manager);
     // Статическая функция для генерации файла в фоновом потоке
-    static std::optional<bool> genFileInBackground(OutFileGenerator* generator);
+    static bool genFileInBackground(OutFileGenerator* generator, QJsonArray data, QJsonArray baseValues);
     
     int contextMenuClickRow = -1;
     QTableWidget* contextMenuActiveTable = nullptr;
