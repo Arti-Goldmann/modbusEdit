@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(pkg-config:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(cmake:*)"
     ],
     "deny": [],
     "ask": []

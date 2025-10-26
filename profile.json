@@ -33,7 +33,7 @@
         {
             "accessType": "RW",
             "addressDec": "1",
-            "addressHex": "0xA0A0",
+            "addressHex": "0x1",
             "base": "Номинальная скорость",
             "dataType": "int16",
             "gain": "0.1",
@@ -47,7 +47,7 @@
         {
             "accessType": "R",
             "addressDec": "2",
-            "addressHex": "0xA0A0",
+            "addressHex": "0x2",
             "base": "Номинальная скорость",
             "dataType": "int16",
             "gain": "0.2",
@@ -61,7 +61,7 @@
         {
             "accessType": "RW",
             "addressDec": "3",
-            "addressHex": "0xA0A0",
+            "addressHex": "0x3",
             "base": "Номинальное напряжение",
             "dataType": "Uint16",
             "gain": "0.3",
@@ -75,7 +75,7 @@
         {
             "accessType": "R",
             "addressDec": "4",
-            "addressHex": "0xA0A0",
+            "addressHex": "0x4",
             "base": "Номинальное напряжение",
             "dataType": "int16",
             "gain": "0.1",
@@ -89,7 +89,7 @@
         {
             "accessType": "RW",
             "addressDec": "5",
-            "addressHex": "0xA0A0",
+            "addressHex": "0x5",
             "base": "Номинальный ток",
             "dataType": "int16",
             "gain": "0.2",
@@ -103,7 +103,7 @@
         {
             "accessType": "R",
             "addressDec": "6",
-            "addressHex": "0xA0A0",
+            "addressHex": "0x6",
             "base": "Номинальный ток",
             "dataType": "Uint16",
             "gain": "0.3",

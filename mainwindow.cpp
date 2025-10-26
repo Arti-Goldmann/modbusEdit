@@ -128,6 +128,10 @@ void MainWindow::setupUI(){
     // Подключаем автообновление базовых величин
     connect(ui->tableWidgetBaseValues, &QTableWidget::itemChanged,
             this, &MainWindow::onBaseValuesChanged);
+
+    // Подключаем обработку изменений в таблице данных (для синхронизации адресов)
+    connect(ui->tableWidget, &QTableWidget::itemChanged,
+            this, &MainWindow::onTableDataChanged);
 }
 
 void MainWindow::setupTable(QTableWidget* table) {
@@ -313,6 +317,10 @@ bool MainWindow::onProfileLoadFinished() {
 
     // Очищаем watcher
     profileWatcher->deleteLater();
+
+    // Сбрасываем флаг изменений после загрузки профиля
+    setModified(false);
+
     return true;
 }
 
@@ -336,6 +344,7 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
         QFileInfo fileInfo(profilePath);
         ui->fileLabel->setText(QString("Файл профиля: %1").arg(fileInfo.fileName()));
         statusBar()->showMessage("Файл успешно сохранен", 5000);
+        setModified(false);  // Сбрасываем флаг изменений после успешного сохранения
     } else {
         processError(jsonProfileManager.getLastError(), "Ошибка сохранения файла");
         return false;
@@ -487,6 +496,7 @@ void MainWindow::onCellClickedData(int row, int col)
     if (row == ui->tableWidget->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
         ui->tableWidget->insertRow(row);
+        setModified();
     }
 }
 
@@ -609,6 +619,8 @@ void MainWindow::onCellDoubleClickedData(int row, int col)
                         item->setForeground(QBrush(Qt::green));
                     }
                 }
+
+                setModified();
             }
 
             dialog->deleteLater();
@@ -620,6 +632,7 @@ void MainWindow::onCellClickedBaseValues(int row, int col)
     if (row == ui->tableWidgetBaseValues->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
         ui->tableWidgetBaseValues->insertRow(row);
+        setModified();
     }
 }
 
@@ -683,9 +696,10 @@ void MainWindow::showContextMenuForTable(const QPoint &pos, QTableWidget* table)
 void MainWindow::deleteRow()
 {
     if (!contextMenuActiveTable) return;
-    
+
     if (contextMenuClickRow >= 0 && contextMenuClickRow < contextMenuActiveTable->rowCount() - 1) {
         contextMenuActiveTable->removeRow(contextMenuClickRow);
+        setModified();
     }
 }
 
@@ -694,7 +708,7 @@ void MainWindow::addRow()
     if (!contextMenuActiveTable) return;
 
     int rowIndex = -1;
-    
+
     if (contextMenuClickRow >= 0) {
         // Добавляем строку после той, на которую кликнули
         rowIndex = contextMenuClickRow + 1;
@@ -710,6 +724,8 @@ void MainWindow::addRow()
     if(contextMenuActiveTable == ui->tableWidget && rowIndex > -1) {
         setRowType("commonType", rowIndex, contextMenuActiveTable);
     }
+
+    setModified();
 }
 
 void MainWindow::setRowType(const QString& rowType, int rowIndex, QTableWidget* table, const QVector<QString>& data, const QString& accessType) {
@@ -774,4 +790,125 @@ void MainWindow::onBaseValuesChanged()
     delete baseValueDelegate;
     baseValueDelegate = new DynamicComboBoxDelegate(ui->tableWidgetBaseValues, 0, this);
     ui->tableWidget->setItemDelegateForColumn(TABLE_HEADERS.indexOf("Базовая величина"), baseValueDelegate);
+
+    // Устанавливаем флаг изменений
+    setModified();
+}
+
+void MainWindow::onTableDataChanged(QTableWidgetItem* item)
+{
+    if (!item) return;
+
+    int row = item->row();
+    int col = item->column();
+
+    // Игнорируем последнюю строку (строка с плюсиком)
+    if (row == ui->tableWidget->rowCount() - 1) return;
+
+    int colAddressDec = TABLE_HEADERS.indexOf("Адрес (дес.)");
+    int colAddressHex = TABLE_HEADERS.indexOf("Адрес (hex.)");
+
+    // Проверяем, что изменился столбец адреса
+    if (col == colAddressDec) {
+        // Изменился десятичный адрес -> пересчитываем hex
+        QString decText = item->text().trimmed();
+
+        if (decText.isEmpty()) return;
+
+        bool ok;
+        int decValue = decText.toInt(&ok);
+
+        if (ok) {
+            QString hexDigits = QString("%1").arg(decValue, 0, 16, QChar('0')).toUpper();
+            QString hexText = QString("0x%1").arg(hexDigits);
+
+            // Временно отключаем сигналы, чтобы избежать рекурсии
+            ui->tableWidget->blockSignals(true);
+
+            QTableWidgetItem* hexItem = ui->tableWidget->item(row, colAddressHex);
+            if (!hexItem) {
+                hexItem = new QTableWidgetItem();
+                ui->tableWidget->setItem(row, colAddressHex, hexItem);
+            }
+            hexItem->setText(hexText);
+
+            ui->tableWidget->blockSignals(false);
+        }
+    }
+    else if (col == colAddressHex) {
+        // Изменился hex адрес -> пересчитываем десятичный
+        QString hexText = item->text().trimmed();
+
+        if (hexText.isEmpty()) return;
+
+        // Убираем префикс 0x если есть
+        if (hexText.startsWith("0x", Qt::CaseInsensitive)) {
+            hexText = hexText.mid(2);
+        }
+
+        bool ok;
+        int decValue = hexText.toInt(&ok, 16);
+
+        if (ok) {
+            QString decText = QString::number(decValue);
+
+            // Временно отключаем сигналы, чтобы избежать рекурсии
+            ui->tableWidget->blockSignals(true);
+
+            QTableWidgetItem* decItem = ui->tableWidget->item(row, colAddressDec);
+            if (!decItem) {
+                decItem = new QTableWidgetItem();
+                ui->tableWidget->setItem(row, colAddressDec, decItem);
+            }
+            decItem->setText(decText);
+
+            // Обновляем hex с правильным форматом (добавляем 0x)
+            QString hexDigits = QString("%1").arg(decValue, 0, 16, QChar('0')).toUpper();
+            QString formattedHex = QString("0x%1").arg(hexDigits);
+            item->setText(formattedHex);
+
+            ui->tableWidget->blockSignals(false);
+        }
+    }
+
+    // Устанавливаем флаг изменений
+    setModified();
+}
+
+void MainWindow::setModified(bool modified) {
+    hasUnsavedChanges = modified;
+}
+
+bool MainWindow::maybeSave() {
+    if (!hasUnsavedChanges) {
+        return true;
+    }
+
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("modbusEdit");
+    msgBox.setText("Документ был изменен.\nХотите сохранить изменения?");
+    msgBox.setIcon(QMessageBox::Warning);
+
+    QPushButton *saveButton = msgBox.addButton("Сохранить", QMessageBox::AcceptRole);
+    msgBox.addButton("Не сохранять", QMessageBox::DestructiveRole);
+    QPushButton *cancelButton = msgBox.addButton("Отмена", QMessageBox::RejectRole);
+
+    msgBox.setDefaultButton(saveButton);
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == saveButton) {
+        return saveProfile();
+    } else if (msgBox.clickedButton() == cancelButton) {
+        return false;
+    }
+
+    return true;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    if (maybeSave()) {
+        event->accept();
+    } else {
+        event->ignore();
+    }
 }

@@ -18,6 +18,7 @@
 #include <QFuture>
 #include <QFutureWatcher>
 #include <QProgressDialog>
+#include <QCloseEvent>
 
 #include "outfilegenerator.h"
 #include "jsonprofilemanager.h"
@@ -38,6 +39,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 private:
     Ui::MainWindow *ui;
     OutFileGenerator outFileGenerator;
@@ -54,6 +58,8 @@ private:
     void addRow();
     void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QVector<QString>& data = {}, const QString& accessType = "R");
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
+    void setModified(bool modified = true);
+    bool maybeSave();
 
     //Обработка долгих функций
     QFutureWatcher<std::optional<JsonProfileManager::TProfileResult>>* profileWatcher;
@@ -67,7 +73,10 @@ private:
     
     int contextMenuClickRow = -1;
     QTableWidget* contextMenuActiveTable = nullptr;
-    
+
+    // Флаг несохраненных изменений
+    bool hasUnsavedChanges = false;
+
     // Делегаты для комбобоксов
     ComboBoxDelegate *accessTypeDelegate;
     ComboBoxDelegate *dataTypeDelegate;
@@ -108,5 +117,6 @@ private slots:
     void showContextMenu(const QPoint &pos);
     void showContextMenuBaseValues(const QPoint &pos);
     void onBaseValuesChanged();
+    void onTableDataChanged(QTableWidgetItem* item);
 };
 #endif // MAINWINDOW_H
