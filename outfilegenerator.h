@@ -23,6 +23,7 @@ public:
     bool setGenerationPath();
     QString getLastError();
     QString getCurrentGenFilePath() const { return currentGenFilePath; }
+    QString restoreLastGenFilePath();
     bool hasActiveGenFile() const { return !currentGenFilePath.isEmpty(); }
 
     bool generate(const QJsonArray& data, const QJsonArray& baseValues);

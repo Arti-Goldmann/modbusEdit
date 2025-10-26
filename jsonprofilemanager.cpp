@@ -2,17 +2,6 @@
 
 JsonProfileManager::JsonProfileManager(QWidget* parent) : parent(parent) {}
 
-std::optional<JsonProfileManager::TProfileResult> JsonProfileManager::loadProfile() {
-    lastError.clear();
-
-    QString lastDir = getLastDirectory();
-    QString profilePath = QFileDialog::getOpenFileName(parent,
-                                                       QObject::tr("Open File"),
-                                                       lastDir,
-                                                       QObject::tr("JSON (*.json)"));
-    return readProfileFormPath(profilePath);
-}
-
 std::optional<JsonProfileManager::TProfileResult> JsonProfileManager::readProfileFormPath(const QString& profilePath) {
     lastError.clear();
 

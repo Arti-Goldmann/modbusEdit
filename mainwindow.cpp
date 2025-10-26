@@ -44,9 +44,9 @@ void MainWindow::setupUI(){
     ui->tableWidget->setColumnWidth(0, 300);  // Название группы параметров
     ui->tableWidget->setColumnWidth(1, 100);  // Тип доступа
     ui->tableWidget->setColumnWidth(2, 100);  // Тип данных
-    ui->tableWidget->setColumnWidth(3, 80);   // Коэффициент
-    ui->tableWidget->setColumnWidth(4, 80);   // Адрес (дес.)
-    ui->tableWidget->setColumnWidth(5, 80);   // Адрес (hex.)
+    ui->tableWidget->setColumnWidth(3, 100);   // Коэффициент
+    ui->tableWidget->setColumnWidth(4, 80);  // Адрес (дес.)
+    ui->tableWidget->setColumnWidth(5, 80);  // Адрес (hex.)
     ui->tableWidget->setColumnWidth(6, 200);  // Переменнная
     ui->tableWidget->setColumnWidth(7, 200);  // Базовая величина
     ui->tableWidget->setColumnWidth(8, 150);  // Примечание
@@ -133,8 +133,8 @@ void MainWindow::setupUI(){
 void MainWindow::setupTable(QTableWidget* table) {
 
     //Настройка высоты строк
-    table->verticalHeader()->setDefaultSectionSize(30);
-    table->verticalHeader()->setFixedWidth(40);
+    table->verticalHeader()->setDefaultSectionSize(25);
+    table->verticalHeader()->setFixedWidth(45);
     table->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed); //Нельзя менять высоту строки
     table->verticalHeader()->setDefaultAlignment(Qt::AlignCenter); //Выравнивание по центру
     table->setSelectionBehavior(QAbstractItemView::SelectItems); //Поведение при выделении ячейки
@@ -160,7 +160,6 @@ bool MainWindow::setGenerationPath() {
     if(outFileGenerator.setGenerationPath()) {
         QString path = outFileGenerator.getCurrentGenFilePath();
         QFileInfo fileInfo(path);
-        ui->absPathToFileGenLabel->setText(QString("Путь генерации файла: %1").arg(fileInfo.absoluteFilePath()));
         ui->lineEditFieGenDir->setText(fileInfo.absolutePath());
     } else {
         processError(outFileGenerator.getLastError(), "Ошибка генерации файла");
@@ -172,6 +171,10 @@ bool MainWindow::setGenerationPath() {
 
 void MainWindow::fillTable(const QJsonArray& data, const QStringList& mainKeys, QTableWidget* table, bool configRow) {
     // Заполняем таблицу с данными
+    table->setRowCount(0);
+
+    // ОТКЛЮЧАЕМ обновление таблицы, чтобы не загружать UI
+    table->setUpdatesEnabled(false);
     table->setRowCount(0);
 
     int rowCounter = 0;
@@ -206,19 +209,84 @@ void MainWindow::fillTable(const QJsonArray& data, const QStringList& mainKeys, 
             }
         }
         rowCounter++;
+
+        // Каждые 100 строк обновляем UI и прогресс
+        if (rowCounter % 100 == 0) {
+            QApplication::processEvents();
+        }
     }
 
     addPlusRow(table); //Добавляем последнюю строку с плюсиком
+
+    // ВКЛЮЧАЕМ обновление обратно
+    table->setUpdatesEnabled(true);
 }
 
 bool MainWindow::loadProfile() {
 
-    auto profileResultOpt = jsonProfileManager.loadProfile();
+    //Выбор файла
+    QString lastDir = jsonProfileManager.getLastDirectory();
+    QString profilePath = QFileDialog::getOpenFileName(this,
+                                                       tr("Open File"),
+                                                       lastDir,
+                                                       tr("JSON (*.json)"));
+
+    if (profilePath.isEmpty()) {
+        // Пользователь отменил выбор
+        return false;
+    }
+
+    jsonProfileManager.setProfilePath(profilePath);
+
+    // Создаем диалог прогресса
+    progressDialog = new QProgressDialog("Загрузка профиля...", "Отмена", 0, 0, this);
+    progressDialog->setWindowModality(Qt::WindowModal);
+    progressDialog->setMinimumDuration(0); // Показать сразу
+    progressDialog->setCancelButton(nullptr); // Убираем кнопку отмены (или оставляем для возможности отмены)
+    progressDialog->show();
+
+    // Создаем watcher для отслеживания завершения
+    profileWatcher = new QFutureWatcher<std::optional<JsonProfileManager::TProfileResult>>(this);
+
+    // Подключаем сигнал завершения
+    connect(profileWatcher, &QFutureWatcher<std::optional<JsonProfileManager::TProfileResult>>::finished,
+            this, &MainWindow::onProfileLoadFinished);
+
+    // Запускаем загрузку в фоновом потоке
+    QFuture<std::optional<JsonProfileManager::TProfileResult>> future = QtConcurrent::run(
+        loadProfileInBackground,
+        &jsonProfileManager
+        );
+
+    profileWatcher->setFuture(future);
+
+    return true; // Вернём результат позже в onProfileLoadFinished
+}
+
+// Статическая функция, которая будет выполняться в фоновом потоке
+std::optional<JsonProfileManager::TProfileResult> MainWindow::loadProfileInBackground(JsonProfileManager* manager) {
+    // Эта функция выполняется в отдельном потоке!
+    // Здесь НЕ ДОЛЖНО быть работы с UI!
+    return manager->readProfile();
+}
+
+bool MainWindow::onProfileLoadFinished() {
+
+    // Получаем результат из фонового потока
+    auto profileResultOpt = profileWatcher->result();
 
     if (!profileResultOpt.has_value()) {
+        // Закрываем диалог при ошибке
+        progressDialog->close();
+        progressDialog->deleteLater();
+        profileWatcher->deleteLater();
+
         processError(jsonProfileManager.getLastError(), "Ошибка загрузки профиля");
         return false;
     }
+
+    // Обновляем текст диалога перед заполнением таблиц
+    progressDialog->setLabelText("Заполнение таблицы...");
 
     QJsonArray data = profileResultOpt.value().data;
     QJsonArray baseValues = profileResultOpt.value().baseValues;
@@ -230,6 +298,21 @@ bool MainWindow::loadProfile() {
     QFileInfo fileInfo(profilePath);
     ui->fileLabel->setText(QString("Файл профиля: %1").arg(fileInfo.fileName()));
     statusBar()->showMessage("Файл успешно открыт", 5000);
+
+    //Еще устанавливаем путь генерации MBedit.c или восстанавливаем последний
+    QString path = outFileGenerator.getCurrentGenFilePath();
+    if(path.isEmpty()) {
+        path = outFileGenerator.restoreLastGenFilePath();
+    }
+    QFileInfo fileGenInfo(path);
+    ui->lineEditFieGenDir->setText(fileGenInfo.absolutePath());
+
+    // Закрываем диалог прогресса ПОСЛЕ fillTable
+    progressDialog->close();
+    progressDialog->deleteLater();
+
+    // Очищаем watcher
+    profileWatcher->deleteLater();
     return true;
 }
 
@@ -263,7 +346,10 @@ bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
 bool MainWindow::startGeneration(){
 
-    //TODO: нужно сначал сохранить изменения в json перед тем как генерировать, если были изменения в таблице
+    //Нужно сначала сохранить изменения в json перед тем как генерировать
+    if(!saveProfile()) {
+        return false;
+    }
 
     auto resultReadJsonOpt = jsonProfileManager.readProfile();
 

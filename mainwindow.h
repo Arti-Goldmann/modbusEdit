@@ -14,6 +14,10 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QPlainTextEdit>
+#include <QtConcurrent/qtconcurrentrun.h>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QProgressDialog>
 
 #include "outfilegenerator.h"
 #include "jsonprofilemanager.h"
@@ -43,12 +47,23 @@ private:
     void addPlusRow(QTableWidget*);
     void fillTable(const QJsonArray& data, const QStringList& mainKeys, QTableWidget* table, bool configRow = false);
     
+
     void processError(const QString& message, const QString& title);
     bool saveProfileHandler(bool isSaveAs);
     void deleteRow();
     void addRow();
     void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QVector<QString>& data = {}, const QString& accessType = "R");
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
+
+    //Обработка долгих функций
+    QFutureWatcher<std::optional<JsonProfileManager::TProfileResult>>* profileWatcher;
+    QFutureWatcher<bool>* fileGenWatcher;
+    QProgressDialog* progressDialog;
+
+    // Статическая функция для загрузки профиля в фоновом потоке
+    static std::optional<JsonProfileManager::TProfileResult> loadProfileInBackground(JsonProfileManager* manager);
+    // Статическая функция для генерации файла в фоновом потоке
+    static std::optional<bool> genFileInBackground(OutFileGenerator* generator);
     
     int contextMenuClickRow = -1;
     QTableWidget* contextMenuActiveTable = nullptr;
@@ -84,9 +99,11 @@ private slots:
     void onCellDoubleClickedData(int row, int col);
     void onCellClickedBaseValues(int row, int col);
     bool loadProfile();
+    bool onProfileLoadFinished();
     bool saveProfile();
     bool saveProfileAs();
     bool startGeneration();
+    bool onGenerationFinished();
     bool setGenerationPath();
     void showContextMenu(const QPoint &pos);
     void showContextMenuBaseValues(const QPoint &pos);

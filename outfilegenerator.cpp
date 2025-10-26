@@ -44,7 +44,7 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
         //Формируем функцию на чтение для R (Input Registers R)
         out << funcHandlerGen("MBhandlerIR_R", "R", data, baseValues, FOR_READ);
 
-        out << "// R/W-переменные.\n";
+        out << "// R/W-variables.\n";
         out << arrayGen("mbodHR", "RW", data);
         out << arrayGen("mbodIR", "R", data);
 
@@ -197,4 +197,10 @@ QString OutFileGenerator::IQformatToBaseQ(const QString& str) {
         return "0";  // Нет точки - дробная часть = 0
     }
     return str.mid(dotIndex + 1);  // Всё после точки
+}
+
+QString OutFileGenerator::restoreLastGenFilePath() {
+    QString fileGenDir = getLastDirectory();
+    currentGenFilePath = fileGenDir + "/MBedit.c";
+    return currentGenFilePath;
 }

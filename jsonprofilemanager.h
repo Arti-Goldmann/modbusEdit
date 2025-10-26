@@ -25,10 +25,12 @@ public:
     } TProfileResult;
 
     // Основные операции с профилями
-    std::optional<TProfileResult> loadProfile(); // Диалог + загрузка
+    std::optional<TProfileResult> readProfileFormPath(const QString& profilePath); // загрузка
     std::optional<TProfileResult> readProfile() {return readProfileFormPath(currentProfilePath);}; // загрузка
     bool saveProfile(QTableWidget* tableData, QTableWidget* tableBaseValues);   // Сохранить в текущий файл
     bool saveProfileAs(QTableWidget* tableData, QTableWidget* tableBaseValues); // Сохранить как...
+    QString getLastDirectory() const;
+    void setProfilePath(const QString& path) {currentProfilePath = path;};
 
     typedef enum  {
         R = 0, //Чтение
@@ -63,11 +65,10 @@ private:
     void setError(const QString& error) { lastError = error; }
     std::optional<QJsonObject> readJsonObj(const QString& filePath);
     std::optional<QJsonArray> readJsonArr(const QString& filePath, const QString& field);
-    std::optional<TProfileResult> readProfileFormPath(const QString& profilePath); // загрузка
+
     QJsonArray tableToJsonArray(QTableWidget* table, const QStringList&, const QStringList& = {});
 
     // Работа с настройками
-    QString getLastDirectory() const;
     void saveLastDirectory(const QString& path);
 };
 
