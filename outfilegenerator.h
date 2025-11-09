@@ -15,6 +15,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QSettings>
+#include "constants.h"
 
 class OutFileGenerator
 {

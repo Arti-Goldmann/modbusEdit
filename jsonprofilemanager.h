@@ -13,6 +13,7 @@
 #include <QTableWidgetItem>
 #include <QTableWidget>
 #include <QWidget>
+#include "constants.h"
 
 class JsonProfileManager
 {
@@ -47,13 +48,12 @@ public:
 
     //Ключи json файла
     //Ключи параметров, которые соотвествуют колонкам таблицы
-    const QStringList DATA_MAIN_KEYS = {"groupName", "accessType", "dataType", "gain",
-                                     "addressDec", "addressHex", "varName", "base", "note"};
+    const QStringList DATA_MAIN_KEYS = Constants::JsonKeys::Data::MAIN_KEYS();
 
     //Ключи параметров, которые есть у строки, но в таблице не отображены
-    const QStringList DATA_HIDDEN_KEYS = {"paramType", "userCode_R", "userCode_W"};
+    const QStringList DATA_HIDDEN_KEYS = Constants::JsonKeys::Data::HIDDEN_KEYS();
 
-    const QStringList BASE_VALUES_KEYS = {"baseName", "units", "IQformat", "baseValue", "note"};
+    const QStringList BASE_VALUES_ARR_KEYS = Constants::JsonKeys::BaseValues::KEYS();
 
 private:
     QWidget* parent;

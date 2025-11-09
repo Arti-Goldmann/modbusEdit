@@ -24,6 +24,7 @@
 #include "jsonprofilemanager.h"
 #include "comboboxdelegate.h"
 #include "dynamiccomboboxdelegate.h"
+#include "constants.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -56,7 +57,7 @@ private:
     bool saveProfileHandler(bool isSaveAs);
     void deleteRow();
     void addRow();
-    void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QVector<QString>& data = {}, const QString& accessType = "R");
+    void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QVector<QString>& data = {}, const QString& accessType = Constants::AccessType::READ_ONLY);
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
     void setModified(bool modified = true);
     bool maybeSave();
@@ -87,19 +88,6 @@ private:
         R = 0, //Чтение
         W = 1, //Запись
     } TaccessVarieties;
-
-    //Названия колонок таблицы с данными
-    const QStringList TABLE_HEADERS = {
-        "Название группы параметров / параметра",
-        "Тип доступа", "Тип данных", "Коэффициент",
-        "Адрес (дес.)", "Адрес (hex.)","Переменная / значение","Базовая величина","Примечание"
-    };
-
-    //Названия колонок таблицы с базовыми величинами
-    const QStringList BASE_VALUES_HEADERS = {
-        "Название базовой величины", "Единицы",
-        "Формат IQ", "Переменная / значение", "Примечание"
-    };
 
 
 private slots:

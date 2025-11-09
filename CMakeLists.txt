@@ -26,6 +26,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         profile.json
+        constants.h
         outfilegenerator.h outfilegenerator.cpp
         jsonprofilemanager.h jsonprofilemanager.cpp
         comboboxdelegate.h comboboxdelegate.cpp

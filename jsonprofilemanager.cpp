@@ -15,12 +15,12 @@ std::optional<JsonProfileManager::TProfileResult> JsonProfileManager::readProfil
     // Сохранить директорию для следующего раза
     saveLastDirectory(currentProfilePath);
 
-    auto dataOpt = readJsonArr(profilePath, "data");
+    auto dataOpt = readJsonArr(profilePath, Constants::JsonKeys::Data::ARRAY_NAME);
     if(!dataOpt.has_value()) {
         return std::nullopt;
     }
 
-    auto baseValuesOpt = readJsonArr(profilePath, "baseValues");
+    auto baseValuesOpt = readJsonArr(profilePath, Constants::JsonKeys::BaseValues::ARRAY_NAME);
     if(!baseValuesOpt.has_value()) {
         return std::nullopt;
     }
@@ -132,24 +132,24 @@ QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStri
                 QVariant data = rootItem->data(Qt::UserRole);
                 QString rowType = data.isValid() ? data.toString() : "";
 
-                if(!additionalKeys.contains("paramType")) return {};
-                if(!additionalKeys.contains("userCode_R")) return {};
-                if(!additionalKeys.contains("userCode_W")) return {};
+                if(!additionalKeys.contains(Constants::JsonKeys::Data::PARAM_TYPE)) return {};
+                if(!additionalKeys.contains(Constants::JsonKeys::Data::USER_CODE_R)) return {};
+                if(!additionalKeys.contains(Constants::JsonKeys::Data::USER_CODE_W)) return {};
 
-                obj["paramType"] = rowType;
+                obj[Constants::JsonKeys::Data::PARAM_TYPE] = rowType;
 
-                if (rowType == "userType") {
+                if (rowType == Constants::ParamType::USER) {
                     // Получаем код пользователя
                     data = rootItem->data(Qt::UserRole + 1 + R);
                     QString userCode_R = data.isValid() ? data.toString() : "";
                     data = rootItem->data(Qt::UserRole + 1 + W);
                     QString userCode_W = data.isValid() ? data.toString() : "";
-                    obj["userCode_R"] = userCode_R;
-                    obj["userCode_W"] = userCode_W;
-                    obj["varName"] = "";
-                } else if(rowType == "commonType") {
-                    obj["userCode_R"] = "";
-                    obj["userCode_W"] = "";
+                    obj[Constants::JsonKeys::Data::USER_CODE_R] = userCode_R;
+                    obj[Constants::JsonKeys::Data::USER_CODE_W] = userCode_W;
+                    obj[Constants::JsonKeys::Data::VAR_NAME] = "";
+                } else if(rowType == Constants::ParamType::COMMON) {
+                    obj[Constants::JsonKeys::Data::USER_CODE_R] = "";
+                    obj[Constants::JsonKeys::Data::USER_CODE_W] = "";
                 }
             }
         }
@@ -175,8 +175,8 @@ bool JsonProfileManager::saveProfile(QTableWidget* tableData, QTableWidget* tabl
         }
 
         QJsonObject rootObj;
-        rootObj["baseValues"] = tableToJsonArray(tableBaseValues, BASE_VALUES_KEYS);
-        rootObj["data"] = tableToJsonArray(tableData, DATA_MAIN_KEYS, DATA_HIDDEN_KEYS);
+        rootObj[Constants::JsonKeys::BaseValues::ARRAY_NAME] = tableToJsonArray(tableBaseValues, BASE_VALUES_ARR_KEYS);
+        rootObj[Constants::JsonKeys::Data::ARRAY_NAME] = tableToJsonArray(tableData, DATA_MAIN_KEYS, DATA_HIDDEN_KEYS);
 
         QJsonDocument doc(rootObj);
         QByteArray byteArr = doc.toJson(QJsonDocument::Indented);

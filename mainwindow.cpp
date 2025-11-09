@@ -36,41 +36,41 @@ void MainWindow::setupUI(){
     setWindowIcon(QIcon(":/ModBus.ico"));
 
     //Настройки таблицы с данными
-    ui->tableWidget->setColumnCount(TABLE_HEADERS.size());
-    ui->tableWidget->setHorizontalHeaderLabels(TABLE_HEADERS);
-    ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->tableWidgetDataValues->setColumnCount(Constants::TableHeaders::DATA_TABLE().size());
+    ui->tableWidgetDataValues->setHorizontalHeaderLabels(Constants::TableHeaders::DATA_TABLE());
+    ui->tableWidgetDataValues->setContextMenuPolicy(Qt::CustomContextMenu);
 
     // Настройка ширины столбцов
-    ui->tableWidget->setColumnWidth(0, 300);  // Название группы параметров
-    ui->tableWidget->setColumnWidth(1, 100);  // Тип доступа
-    ui->tableWidget->setColumnWidth(2, 100);  // Тип данных
-    ui->tableWidget->setColumnWidth(3, 100);   // Коэффициент
-    ui->tableWidget->setColumnWidth(4, 80);  // Адрес (дес.)
-    ui->tableWidget->setColumnWidth(5, 80);  // Адрес (hex.)
-    ui->tableWidget->setColumnWidth(6, 200);  // Переменнная
-    ui->tableWidget->setColumnWidth(7, 200);  // Базовая величина
-    ui->tableWidget->setColumnWidth(8, 150);  // Примечание
+    ui->tableWidgetDataValues->setColumnWidth(0, 300);  // Название группы параметров
+    ui->tableWidgetDataValues->setColumnWidth(1, 100);  // Тип доступа
+    ui->tableWidgetDataValues->setColumnWidth(2, 100);  // Тип данных
+    ui->tableWidgetDataValues->setColumnWidth(3, 100);  // Коэффициент
+    ui->tableWidgetDataValues->setColumnWidth(4, 80);   // Адрес (дес.)
+    ui->tableWidgetDataValues->setColumnWidth(5, 80);   // Адрес (hex.)
+    ui->tableWidgetDataValues->setColumnWidth(6, 200);  // Переменнная
+    ui->tableWidgetDataValues->setColumnWidth(7, 200);  // Базовая величина
+    ui->tableWidgetDataValues->setColumnWidth(8, 150);  // Примечание
 
-    setupTable(ui->tableWidget);
-    addPlusRow(ui->tableWidget); //Добавляем последнюю строку с плюсиком
+    setupTable(ui->tableWidgetDataValues);
+    addPlusRow(ui->tableWidgetDataValues); //Добавляем последнюю строку с плюсиком
     
     // Настройка делегатов для комбобоксов
-    QStringList accessTypes = {"RW", "R"};
+    QStringList accessTypes = Constants::AccessType::toStringList();
     accessTypeDelegate = new ComboBoxDelegate(accessTypes, this);
-    
-    QStringList dataTypes = {"int16", "Uint16"};
+
+    QStringList dataTypes = Constants::DataType::toStringList();
     dataTypeDelegate = new ComboBoxDelegate(dataTypes, this);
     
     baseValueDelegate = new DynamicComboBoxDelegate(ui->tableWidgetBaseValues, 0, this);
     
     // Устанавливаем делегаты для соответствующих столбцов
-    ui->tableWidget->setItemDelegateForColumn(1, accessTypeDelegate);  // Тип доступа
-    ui->tableWidget->setItemDelegateForColumn(2, dataTypeDelegate);    // Тип данных
-    ui->tableWidget->setItemDelegateForColumn(7, baseValueDelegate);   // Базовая величина
+    ui->tableWidgetDataValues->setItemDelegateForColumn(1, accessTypeDelegate);  // Тип доступа
+    ui->tableWidgetDataValues->setItemDelegateForColumn(2, dataTypeDelegate);    // Тип данных
+    ui->tableWidgetDataValues->setItemDelegateForColumn(7, baseValueDelegate);   // Базовая величина
 
     //Настройки таблицы с базовыми величинами
-    ui->tableWidgetBaseValues->setColumnCount(BASE_VALUES_HEADERS.size());
-    ui->tableWidgetBaseValues->setHorizontalHeaderLabels(BASE_VALUES_HEADERS);
+    ui->tableWidgetBaseValues->setColumnCount(Constants::TableHeaders::BASE_VALUES_ARR().size());
+    ui->tableWidgetBaseValues->setHorizontalHeaderLabels(Constants::TableHeaders::BASE_VALUES_ARR());
     ui->tableWidgetBaseValues->setContextMenuPolicy(Qt::CustomContextMenu);
 
     ui->tableWidgetBaseValues->setColumnWidth(0, 300);
@@ -107,19 +107,19 @@ void MainWindow::setupUI(){
     connect(ui->saveAs, &QAction::triggered,
             this, &MainWindow::saveProfileAs);
 
-    connect(ui->tableWidget, &QTableWidget::itemSelectionChanged,
+    connect(ui->tableWidgetDataValues, &QTableWidget::itemSelectionChanged,
             this, &MainWindow::onSelectionChanged);
 
-    connect(ui->tableWidget, &QTableWidget::cellClicked,
+    connect(ui->tableWidgetDataValues, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClickedData);
 
-    connect(ui->tableWidget, &QTableWidget::cellDoubleClicked,
+    connect(ui->tableWidgetDataValues, &QTableWidget::cellDoubleClicked,
             this, &MainWindow::onCellDoubleClickedData);
 
     connect(ui->tableWidgetBaseValues, &QTableWidget::cellClicked,
             this, &MainWindow::onCellClickedBaseValues);
 
-    connect(ui->tableWidget, &QTableWidget::customContextMenuRequested,
+    connect(ui->tableWidgetDataValues, &QTableWidget::customContextMenuRequested,
             this, &MainWindow::showContextMenu);
 
     connect(ui->tableWidgetBaseValues, &QTableWidget::customContextMenuRequested,
@@ -130,7 +130,7 @@ void MainWindow::setupUI(){
             this, &MainWindow::onBaseValuesChanged);
 
     // Подключаем обработку изменений в таблице данных (для синхронизации адресов)
-    connect(ui->tableWidget, &QTableWidget::itemChanged,
+    connect(ui->tableWidgetDataValues, &QTableWidget::itemChanged,
             this, &MainWindow::onTableDataChanged);
 }
 
@@ -197,18 +197,18 @@ void MainWindow::fillTable(const QJsonArray& data, const QStringList& mainKeys, 
         }
 
         if(configRow) { //Конфигурируем строки
-            QString paramType = obj["paramType"].toString();
+            QString paramType = obj[Constants::JsonKeys::Data::PARAM_TYPE].toString();
 
-            if(paramType == "commonType") { //Встяавляем в соответсвующую колонку название перемеенной
-                QString varName = obj["varName"].toString();
+            if(paramType == Constants::ParamType::COMMON) { //Встяавляем в соответсвующую колонку название перемеенной
+                QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
                 QVector<QString> data = {varName};
                 setRowType(paramType, rowCounter, table, data);
-            } else if(paramType == "userType") {
+            } else if(paramType == Constants::ParamType::USER) {
                 //Пользовательская ячейка. Выставляем PASTE YOUR CODE в ячейке, если пустая: USER CODE
-                QString userCode_R = obj["userCode_R"].toString();
-                QString userCode_W = obj["userCode_W"].toString();
+                QString userCode_R = obj[Constants::JsonKeys::Data::USER_CODE_R].toString();
+                QString userCode_W = obj[Constants::JsonKeys::Data::USER_CODE_W].toString();
                 QVector<QString> data = {userCode_R, userCode_W};
-                QString accessType = obj["accessType"].toString();
+                QString accessType = obj[Constants::JsonKeys::Data::ACCESS_TYPE].toString();
                 setRowType(paramType, rowCounter, table, data, accessType);
             }
         }
@@ -295,8 +295,8 @@ bool MainWindow::onProfileLoadFinished() {
     QJsonArray data = profileResultOpt.value().data;
     QJsonArray baseValues = profileResultOpt.value().baseValues;
 
-    fillTable(data, jsonProfileManager.DATA_MAIN_KEYS, ui->tableWidget, true);
-    fillTable(baseValues, jsonProfileManager.BASE_VALUES_KEYS, ui->tableWidgetBaseValues);
+    fillTable(data, jsonProfileManager.DATA_MAIN_KEYS, ui->tableWidgetDataValues, true);
+    fillTable(baseValues, jsonProfileManager.BASE_VALUES_ARR_KEYS, ui->tableWidgetBaseValues);
 
     QString profilePath = jsonProfileManager.getCurrentProfilePath();
     QFileInfo fileInfo(profilePath);
@@ -336,8 +336,8 @@ bool MainWindow::saveProfileAs() {
 
 bool MainWindow::saveProfileHandler(bool isSaveAs) {
 
-    bool result = isSaveAs ? jsonProfileManager.saveProfileAs(ui->tableWidget, ui->tableWidgetBaseValues) :
-                             jsonProfileManager.saveProfile(ui->tableWidget, ui->tableWidgetBaseValues);
+    bool result = isSaveAs ? jsonProfileManager.saveProfileAs(ui->tableWidgetDataValues, ui->tableWidgetBaseValues) :
+                             jsonProfileManager.saveProfile(ui->tableWidgetDataValues, ui->tableWidgetBaseValues);
 
     if(result) {
         QString profilePath = jsonProfileManager.getCurrentProfilePath();
@@ -493,9 +493,9 @@ void MainWindow::onSelectionChanged(){
 // Реализация слота для клика по ячейке
 void MainWindow::onCellClickedData(int row, int col)
 {
-    if (row == ui->tableWidget->rowCount() - 1) {
+    if (row == ui->tableWidgetDataValues->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
-        ui->tableWidget->insertRow(row);
+        ui->tableWidgetDataValues->insertRow(row);
         setModified();
     }
 }
@@ -513,25 +513,25 @@ static void configTextEdit(QPlainTextEdit* textEdit, const QString& code, const 
 void MainWindow::onCellDoubleClickedData(int row, int col)
 {
     //Не последняя строка
-    if (row != ui->tableWidget->rowCount() - 1) {
+    if (row != ui->tableWidgetDataValues->rowCount() - 1) {
 
         // Проверяем, что это столбец "Переменная/значение" и тип строки "userType"
-        if (col != TABLE_HEADERS.indexOf("Переменная / значение")) return;
+        if (col != Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::VARIABLE_VALUE)) return;
 
-        QTableWidgetItem* rootItem = ui->tableWidget->item(row, 0); //Скрытая информация текущей строки в 0 ячейке
+        QTableWidgetItem* rootItem = ui->tableWidgetDataValues->item(row, 0); //Скрытая информация текущей строки в 0 ячейке
         QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
 
-        if (rowType == "userType") {
+        if (rowType == Constants::ParamType::USER) {
 
-            QTableWidgetItem* accessTypeItem = ui->tableWidget->item(row,  TABLE_HEADERS.indexOf("Тип доступа"));
+            QTableWidgetItem* accessTypeItem = ui->tableWidgetDataValues->item(row,  Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ACCESS_TYPE));
             QString accessType = accessTypeItem ? accessTypeItem->text() : ""; //RW или R
 
             int numOfAccessVarieties;
 
-            if(accessType == "R") {
+            if(accessType == Constants::AccessType::READ_ONLY) {
                 //Если тип доступа R, то нужно редактировать код только на чтение (R)
                 numOfAccessVarieties = 1;
-            } else if(accessType == "RW") {
+            } else if(accessType == Constants::AccessType::READ_WRITE) {
                 //Если тип доступа RW, то нужно редактировать код и на чтение (R) и на запись (W)
                 numOfAccessVarieties = 2;
             } else {
@@ -578,9 +578,9 @@ void MainWindow::onCellDoubleClickedData(int row, int col)
 
                 QString labelMessage;
                 if(i == R) {
-                    labelMessage = "на чтение (R)";
+                    labelMessage = Constants::UiText::READ_LABEL;
                 } else if(i == W) {
-                    labelMessage = "на запись (W)";
+                    labelMessage = Constants::UiText::WRITE_LABEL;
                 }
                 mainLayout->addWidget(new QLabel(QString("Введите ваш код %1:").arg(labelMessage)));
                 mainLayout->addWidget(textEditArr[i]);
@@ -606,16 +606,16 @@ void MainWindow::onCellDoubleClickedData(int row, int col)
                 }
 
                 // Обновляем отображение в ячейке
-                QTableWidgetItem* item = ui->tableWidget->item(row, col);
+                QTableWidgetItem* item = ui->tableWidgetDataValues->item(row, col);
 
                 if (isCodeEmpty) {
                     if(item) {
-                        item->setText("*** PASTE YOUR CODE ***");
+                        item->setText(Constants::UiText::PASTE_CODE);
                         item->setForeground(QBrush());  // Пустая кисть = дефолтный цвет
                     }
                 } else {
                     if(item) {
-                        item->setText("*** USER CODE ✓ ***");
+                        item->setText(Constants::UiText::USER_CODE_OK);
                         item->setForeground(QBrush(Qt::green));
                     }
                 }
@@ -644,7 +644,7 @@ void MainWindow::processError(const QString& message, const QString& title) {
 
 void MainWindow::showContextMenu(const QPoint &pos)
 {
-    showContextMenuForTable(pos, ui->tableWidget);
+    showContextMenuForTable(pos, ui->tableWidgetDataValues);
 }
 
 void MainWindow::showContextMenuBaseValues(const QPoint &pos)
@@ -673,7 +673,7 @@ void MainWindow::showContextMenuForTable(const QPoint &pos, QTableWidget* table)
 
     QAction *commonType = nullptr;
     QAction *userType = nullptr;
-    if(contextMenuActiveTable == ui->tableWidget) {// Если основная таблица с данными
+    if(contextMenuActiveTable == ui->tableWidgetDataValues) {// Если основная таблица с данными
         QMenu *subMenu = contextMenu.addMenu("Тип параметра");
         commonType = subMenu->addAction("Обычный");
         userType = subMenu->addAction("Пользовательский");
@@ -687,9 +687,9 @@ void MainWindow::showContextMenuForTable(const QPoint &pos, QTableWidget* table)
     } else if (selectedAction == addAction) {
         addRow();
     } else if (commonType && selectedAction == commonType) {
-        setRowType("commonType", contextMenuClickRow, contextMenuActiveTable);
+        setRowType(Constants::ParamType::COMMON, contextMenuClickRow, contextMenuActiveTable);
     } else if(userType && selectedAction == userType) {
-        setRowType("userType", contextMenuClickRow, contextMenuActiveTable);
+        setRowType(Constants::ParamType::USER, contextMenuClickRow, contextMenuActiveTable);
     }
 }
 
@@ -721,8 +721,8 @@ void MainWindow::addRow()
     }
 
     //Если основная таблица с данными, то определим дефолтный тип строки
-    if(contextMenuActiveTable == ui->tableWidget && rowIndex > -1) {
-        setRowType("commonType", rowIndex, contextMenuActiveTable);
+    if(contextMenuActiveTable == ui->tableWidgetDataValues && rowIndex > -1) {
+        setRowType(Constants::ParamType::COMMON, rowIndex, contextMenuActiveTable);
     }
 
     setModified();
@@ -740,7 +740,7 @@ void MainWindow::setRowType(const QString& rowType, int rowIndex, QTableWidget* 
     }
     itemRoot->setData(Qt::UserRole, rowType);
 
-    int columnIndex = TABLE_HEADERS.indexOf("Переменная / значение");
+    int columnIndex = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::VARIABLE_VALUE);
     if (columnIndex == -1) return;
 
     //В колонку "Переменная / значение" устаналиваем текст и настройки в зависимости от типа
@@ -750,20 +750,20 @@ void MainWindow::setRowType(const QString& rowType, int rowIndex, QTableWidget* 
         table->setItem(rowIndex, columnIndex, item);
     }
 
-    if(rowType == "commonType") {
+    if(rowType == Constants::ParamType::COMMON) {
         QString varName = !data.isEmpty() ? data[0] : "";
         item->setText(varName); //Переменная хранится в 0 элементе
         item->setFlags(item->flags() | Qt::ItemIsEditable); // делаем редактируемым
 
-    } else if (rowType == "userType") {
+    } else if (rowType == Constants::ParamType::USER) {
         bool isEmpty = true;
         //В корневой элемент сохраняем пользовательский код
-        if(accessType == "R") { //Если R, то тогда нам должны были передать только посльзовательский код на чтение
+        if(accessType == Constants::AccessType::READ_ONLY) { //Если R, то тогда нам должны были передать только посльзовательский код на чтение
             QString userCode_R = !data.isEmpty() ? data[R] : "";
             if(userCode_R != "") isEmpty = false;
             itemRoot->setData(Qt::UserRole + 1 + R, userCode_R);
 
-        } else if(accessType == "RW") { //Если RW, то тогда должен быть пользовательский код и на чтение и на запись
+        } else if(accessType == Constants::AccessType::READ_WRITE) { //Если RW, то тогда должен быть пользовательский код и на чтение и на запись
             QString userCode_R = !data.isEmpty() ? data[R] : "";
             QString userCode_W = !data.isEmpty() ? data[W] : "";
 
@@ -774,10 +774,10 @@ void MainWindow::setRowType(const QString& rowType, int rowIndex, QTableWidget* 
         }
 
         if(isEmpty) {
-            item->setText("*** PASTE YOUR CODE ***");
+            item->setText(Constants::UiText::PASTE_CODE);
             item->setForeground(QBrush());  // Пустая кисть = дефолтный цвет
         } else {
-            item->setText("*** USER CODE ✓ ***");
+            item->setText(Constants::UiText::USER_CODE_OK);
             item->setForeground(QBrush(Qt::green));
         }
         item->setFlags(item->flags() & ~Qt::ItemIsEditable); // убираем возможность редактирования
@@ -789,7 +789,7 @@ void MainWindow::onBaseValuesChanged()
     // Пересоздаем делегат для базовых величин с обновленными данными
     delete baseValueDelegate;
     baseValueDelegate = new DynamicComboBoxDelegate(ui->tableWidgetBaseValues, 0, this);
-    ui->tableWidget->setItemDelegateForColumn(TABLE_HEADERS.indexOf("Базовая величина"), baseValueDelegate);
+    ui->tableWidgetDataValues->setItemDelegateForColumn(Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::BASE_VALUE), baseValueDelegate);
 
     // Устанавливаем флаг изменений
     setModified();
@@ -803,10 +803,10 @@ void MainWindow::onTableDataChanged(QTableWidgetItem* item)
     int col = item->column();
 
     // Игнорируем последнюю строку (строка с плюсиком)
-    if (row == ui->tableWidget->rowCount() - 1) return;
+    if (row == ui->tableWidgetDataValues->rowCount() - 1) return;
 
-    int colAddressDec = TABLE_HEADERS.indexOf("Адрес (дес.)");
-    int colAddressHex = TABLE_HEADERS.indexOf("Адрес (hex.)");
+    int colAddressDec = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_DEC);
+    int colAddressHex = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_HEX);
 
     // Проверяем, что изменился столбец адреса
     if (col == colAddressDec) {
@@ -823,16 +823,16 @@ void MainWindow::onTableDataChanged(QTableWidgetItem* item)
             QString hexText = QString("0x%1").arg(hexDigits);
 
             // Временно отключаем сигналы, чтобы избежать рекурсии
-            ui->tableWidget->blockSignals(true);
+            ui->tableWidgetDataValues->blockSignals(true);
 
-            QTableWidgetItem* hexItem = ui->tableWidget->item(row, colAddressHex);
+            QTableWidgetItem* hexItem = ui->tableWidgetDataValues->item(row, colAddressHex);
             if (!hexItem) {
                 hexItem = new QTableWidgetItem();
-                ui->tableWidget->setItem(row, colAddressHex, hexItem);
+                ui->tableWidgetDataValues->setItem(row, colAddressHex, hexItem);
             }
             hexItem->setText(hexText);
 
-            ui->tableWidget->blockSignals(false);
+            ui->tableWidgetDataValues->blockSignals(false);
         }
     }
     else if (col == colAddressHex) {
@@ -853,12 +853,12 @@ void MainWindow::onTableDataChanged(QTableWidgetItem* item)
             QString decText = QString::number(decValue);
 
             // Временно отключаем сигналы, чтобы избежать рекурсии
-            ui->tableWidget->blockSignals(true);
+            ui->tableWidgetDataValues->blockSignals(true);
 
-            QTableWidgetItem* decItem = ui->tableWidget->item(row, colAddressDec);
+            QTableWidgetItem* decItem = ui->tableWidgetDataValues->item(row, colAddressDec);
             if (!decItem) {
                 decItem = new QTableWidgetItem();
-                ui->tableWidget->setItem(row, colAddressDec, decItem);
+                ui->tableWidgetDataValues->setItem(row, colAddressDec, decItem);
             }
             decItem->setText(decText);
 
@@ -867,7 +867,7 @@ void MainWindow::onTableDataChanged(QTableWidgetItem* item)
             QString formattedHex = QString("0x%1").arg(hexDigits);
             item->setText(formattedHex);
 
-            ui->tableWidget->blockSignals(false);
+            ui->tableWidgetDataValues->blockSignals(false);
         }
     }
 
