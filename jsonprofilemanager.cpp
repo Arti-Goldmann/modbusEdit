@@ -150,6 +150,11 @@ QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStri
                 } else if(rowType == Constants::ParamType::COMMON) {
                     obj[Constants::JsonKeys::Data::USER_CODE_R] = "";
                     obj[Constants::JsonKeys::Data::USER_CODE_W] = "";
+                } else if(rowType == Constants::ParamType::TITLE) {
+                    obj[Constants::JsonKeys::Data::USER_CODE_R] = "";
+                    obj[Constants::JsonKeys::Data::USER_CODE_W] = "";
+                    // Текст заголовка из первой ячейки сохраняем в varName
+                    obj[Constants::JsonKeys::Data::VAR_NAME] = rootItem->text();
                 }
             }
         }

@@ -13,7 +13,7 @@ void MBhandlerHR_R(TModbusSlaveDictObj* reg)
 
 			break;
 		case 5:
-			reg->data = IQtoInt16(varName5,0.2,drv_params.Inom,0);
+			reg->data = varName5;
 			break;
 		case 7:
 			USER_CODE_FOR_READ;
@@ -39,7 +39,9 @@ void MBhandlerHR_W(TModbusSlaveDictObj* reg)
 			USER_CODE_FOR_WRITE;
 			break;
 		case 5:
-			varName5 = Int16toIQ(reg->data,0.2,drv_params.Inom,0);
+			varName5 = reg->data;
+			if (varName5 < -10) varName5 = -10;
+			if (varName5 > 10) varName5 = 10;
 			break;
 		case 7:
 			USER_CODE_FOR_WRITE;
@@ -47,6 +49,8 @@ void MBhandlerHR_W(TModbusSlaveDictObj* reg)
 		case 8:
 		if(!MBEDIT_IS_DRV_IN_STOP()){
 			varName8 = Int16toIQ(reg->data,0.5,drv_params.test,6);
+			MBEDIT_SAT_MIN(-10, &varName8, drv_params.test, 6);
+			MBEDIT_SAT_MAX(10, &varName8, drv_params.test, 6);
 		}
 			break;
 		default:
@@ -65,7 +69,7 @@ void MBhandlerIR_R(TModbusSlaveDictObj* reg)
 			reg->data = IQtoInt16(varName4,0.1,drv_params.Unom,6);
 			break;
 		case 6:
-			reg->data = IQtoUInt16(varName6,0.3,drv_params.Inom,0);
+			reg->data = varName6;
 			break;
 		default:
 			break;

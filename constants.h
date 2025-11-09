@@ -23,6 +23,7 @@ namespace Constants {
     namespace ParamType {
         constexpr const char* COMMON = "commonType";
         constexpr const char* USER = "userType";
+        constexpr const char* TITLE = "titleType";
     }
 
     // Типы данных ModBus

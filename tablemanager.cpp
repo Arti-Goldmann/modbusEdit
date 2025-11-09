@@ -97,6 +97,11 @@ void TableManager::fillTable(QTableWidget* table,
                 QVector<QString> data = {userCode_R, userCode_W};
                 QString accessType = obj[Constants::JsonKeys::Data::ACCESS_TYPE].toString();
                 setRowType(paramType, rowCounter, table, data, accessType);
+            } else if(paramType == Constants::ParamType::TITLE) {
+                //Заголовок - объединяем все столбцы
+                QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
+                QVector<QString> data = {varName};
+                setRowType(paramType, rowCounter, table, data);
             }
         }
         rowCounter++;
@@ -124,6 +129,26 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
         table->setItem(rowIndex, 0, itemRoot);
     }
     itemRoot->setData(Qt::UserRole, rowType);
+
+    // Снимаем объединение столбцов (на случай если раньше был TITLE)
+    if (rowType != Constants::ParamType::TITLE) {
+        table->setSpan(rowIndex, 0, 1, 1);
+
+        // Сбрасываем форматирование первой ячейки
+        QFont font = itemRoot->font();
+        font.setBold(false);
+        font.setPointSize(font.pointSize()); // Оставляем текущий размер
+        itemRoot->setFont(font);
+        itemRoot->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        itemRoot->setText(""); // Очищаем текст в первой ячейке
+
+        // Создаем пустые ячейки для всех столбцов (если их нет)
+        for (int col = 1; col < table->columnCount(); col++) {
+            if (!table->item(rowIndex, col)) {
+                table->setItem(rowIndex, col, new QTableWidgetItem(""));
+            }
+        }
+    }
 
     int columnIndex = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::VARIABLE_VALUE);
     if (columnIndex == -1) return;
@@ -166,6 +191,24 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
             item->setForeground(QBrush(Qt::green));
         }
         item->setFlags(item->flags() & ~Qt::ItemIsEditable); // убираем возможность редактирования
+
+    } else if (rowType == Constants::ParamType::TITLE) {
+        // Объединяем все столбцы в одну ячейку
+        table->setSpan(rowIndex, 0, 1, table->columnCount());
+
+        // Устанавливаем текст из varName в первую ячейку
+        QString titleText = !data.isEmpty() ? data[0] : "";
+        itemRoot->setText(titleText);
+
+        // Настраиваем внешний вид
+        QFont font = itemRoot->font();
+        font.setBold(true);
+        font.setPointSize(font.pointSize() + 1);
+        itemRoot->setFont(font);
+        itemRoot->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+        // Делаем редактируемым
+        itemRoot->setFlags(itemRoot->flags() | Qt::ItemIsEditable);
     }
 }
 
@@ -339,12 +382,14 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
 
     QAction *commonType = nullptr;
     QAction *userType = nullptr;
+    QAction *titleType = nullptr;
 
 
     if(table == dataTable) {// Если основная таблица с данными
         QMenu *subMenu = contextMenu.addMenu("Тип параметра");
         commonType = subMenu->addAction("Обычный");
         userType = subMenu->addAction("Пользовательский");
+        titleType = subMenu->addAction("Заголовок");
     }
 
     QAction *selectedAction = contextMenu.exec(table->mapToGlobal(pos));
@@ -358,6 +403,9 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
         emit dataModified();
     } else if(userType && selectedAction == userType) {
         setRowType(Constants::ParamType::USER, contextMenuClickRow, contextMenuActiveTable);
+        emit dataModified();
+    } else if(titleType && selectedAction == titleType) {
+        setRowType(Constants::ParamType::TITLE, contextMenuClickRow, contextMenuActiveTable);
         emit dataModified();
     }
 }

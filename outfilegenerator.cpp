@@ -130,32 +130,66 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
 
 QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue) {
     QString output;
+    QString drvDataType = obj[Constants::JsonKeys::Data::DRV_DATA_TYPE].toString();
+    QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
 
-    //Формируем функцию для этого case в соотвествии с полями json
-    output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
-                      .arg(IQ_TO_TYPE_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
-                           obj[Constants::JsonKeys::Data::VAR_NAME].toString(),
-                           obj[Constants::JsonKeys::Data::GAIN].toString(),
-                           baseValue,
-                           IQformatToBaseQ(IQformat)
-                           )
-                  );
+    if (drvDataType == Constants::drvDataType::INT) {
+        // Для INT - прямая передача без преобразования
+        output.append(QString("\t\t\treg->data = %1;\n").arg(varName));
+    } else {
+        // Для FRACT - используем функцию преобразования
+        output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
+                          .arg(IQ_TO_TYPE_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
+                               varName,
+                               obj[Constants::JsonKeys::Data::GAIN].toString(),
+                               baseValue,
+                               IQformatToBaseQ(IQformat)
+                               )
+                      );
+    }
 
     return output;
 }
 
 QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonObject& obj, const QString& IQformat, const QString& baseValue) {
     QString output;
+    QString drvDataType = obj[Constants::JsonKeys::Data::DRV_DATA_TYPE].toString();
+    QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
+    QString minValue = obj[Constants::JsonKeys::Data::MIN].toString();
+    QString maxValue = obj[Constants::JsonKeys::Data::MAX].toString();
 
-    //Формируем функцию для этого case в соотвествии с полями json
-    output.append(QString("\t\t\t%2 = %1(reg->data,%3,%4,%5);\n")
-                      .arg(TYPE_TO_IQ_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
-                           obj[Constants::JsonKeys::Data::VAR_NAME].toString(),
-                           obj[Constants::JsonKeys::Data::GAIN].toString(),
-                           baseValue,
-                           IQformatToBaseQ(IQformat)
-                           )
-                  );
+    if (drvDataType == Constants::drvDataType::INT) {
+        // Для INT - прямая передача без преобразования
+        output.append(QString("\t\t\t%1 = reg->data;\n").arg(varName));
+
+        // Добавляем ограничения по min и max через if
+        if (!minValue.isEmpty()) {
+            output.append(QString("\t\t\tif (%1 < %2) %1 = %2;\n").arg(varName, minValue));
+        }
+        if (!maxValue.isEmpty()) {
+            output.append(QString("\t\t\tif (%1 > %2) %1 = %2;\n").arg(varName, maxValue));
+        }
+    } else {
+        // Для FRACT - используем функцию преобразования
+        output.append(QString("\t\t\t%2 = %1(reg->data,%3,%4,%5);\n")
+                          .arg(TYPE_TO_IQ_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
+                               varName,
+                               obj[Constants::JsonKeys::Data::GAIN].toString(),
+                               baseValue,
+                               IQformatToBaseQ(IQformat)
+                               )
+                      );
+
+        // Добавляем ограничения по min и max через макросы
+        if (!minValue.isEmpty()) {
+            output.append(QString("\t\t\tMBEDIT_SAT_MIN(%1, &%2, %3, %4);\n")
+                              .arg(minValue, varName, baseValue, IQformatToBaseQ(IQformat)));
+        }
+        if (!maxValue.isEmpty()) {
+            output.append(QString("\t\t\tMBEDIT_SAT_MAX(%1, &%2, %3, %4);\n")
+                              .arg(maxValue, varName, baseValue, IQformatToBaseQ(IQformat)));
+        }
+    }
 
     return output;
 }
