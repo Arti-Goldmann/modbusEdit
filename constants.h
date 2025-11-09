@@ -25,13 +25,23 @@ namespace Constants {
         constexpr const char* USER = "userType";
     }
 
-    // Типы данных
-    namespace DataType {
+    // Типы данных ModBus
+    namespace ModBusDataType {
         constexpr const char* INT16 = "int16";
         constexpr const char* UINT16 = "Uint16";
 
         inline QStringList toStringList() {
             return {INT16, UINT16};
+        }
+    }
+
+        // Типы данных ModBus
+    namespace drvDataType {
+        constexpr const char* FRACT = "FRACT";
+        constexpr const char* INT = "INT";
+
+        inline QStringList toStringList() {
+            return {FRACT, INT};
         }
     }
 
@@ -48,11 +58,14 @@ namespace Constants {
             return {
                 "Название группы параметров / параметра",
                 "Тип доступа",
-                "Тип данных",
+                "Тип данных ModBus",
+                "Тип данных привода",
                 "Коэффициент",
                 "Адрес (дес.)",
                 "Адрес (hex.)",
                 "Переменная / значение",
+                "Мин.",
+                "Макс.",
                 "Базовая величина",
                 "Примечание"
             };
@@ -72,11 +85,14 @@ namespace Constants {
         // Названия отдельных колонок для быстрого доступа
         constexpr const char* GROUP_NAME = "Название группы параметров / параметра";
         constexpr const char* ACCESS_TYPE = "Тип доступа";
-        constexpr const char* DATA_TYPE = "Тип данных";
+        constexpr const char* MODBUS_DATA_TYPE = "Тип данных ModBus";
+        constexpr const char* DRV_DATA_TYPE = "Тип данных СУ";
         constexpr const char* COEFFICIENT = "Коэффициент";
         constexpr const char* ADDRESS_DEC = "Адрес (дес.)";
         constexpr const char* ADDRESS_HEX = "Адрес (hex.)";
         constexpr const char* VARIABLE_VALUE = "Переменная / значение";
+        constexpr const char* MIN = "Мин.";
+        constexpr const char* MAX = "Макс.";
         constexpr const char* BASE_VALUE = "Базовая величина";
         constexpr const char* NOTE = "Примечание";
     }
@@ -90,8 +106,8 @@ namespace Constants {
 
             // Основные ключи (соответствуют колонкам таблицы)
             inline const QStringList MAIN_KEYS() {
-                return {"groupName", "accessType", "dataType", "gain",
-                        "addressDec", "addressHex", "varName", "base", "note"};
+                return {"groupName", "accessType", "modBusDataType", "drvDataType", "gain",
+                        "addressDec", "addressHex", "varName", "min", "max", "base", "note"};
             }
 
             // Скрытые ключи (не отображаются в таблице)
@@ -102,11 +118,14 @@ namespace Constants {
             // Отдельные ключи для прямого доступа
             constexpr const char* GROUP_NAME = "groupName";
             constexpr const char* ACCESS_TYPE = "accessType";
-            constexpr const char* DATA_TYPE = "dataType";
+            constexpr const char* MODBUS_DATA_TYPE = "modBusDataType";
+            constexpr const char* DRV_DATA_TYPE = "drvDataType";
             constexpr const char* GAIN = "gain";
             constexpr const char* ADDRESS_DEC = "addressDec";
             constexpr const char* ADDRESS_HEX = "addressHex";
             constexpr const char* VAR_NAME = "varName";
+            constexpr const char* MIN = "min";
+            constexpr const char* MAX = "max";
             constexpr const char* BASE = "base";
             constexpr const char* NOTE = "note";
             constexpr const char* PARAM_TYPE = "paramType";

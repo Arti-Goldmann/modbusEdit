@@ -45,6 +45,7 @@ private:
     // Делегаты для комбобоксов
     ComboBoxDelegate *accessTypeDelegate;
     ComboBoxDelegate *dataTypeDelegate;
+    ComboBoxDelegate *drvDataTypeDelegate;
     DynamicComboBoxDelegate *baseValueDelegate;
     ComboBoxDelegate *iqFormatDelegate;
 

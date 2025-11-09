@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     , profileOperations(nullptr)
     , accessTypeDelegate(nullptr)
     , dataTypeDelegate(nullptr)
+    , drvDataTypeDelegate(nullptr)
     , baseValueDelegate(nullptr)
     , iqFormatDelegate(nullptr)
     , hasUnsavedChanges(false)
@@ -58,13 +59,16 @@ void MainWindow::setupUI(){
     // Настройка ширины столбцов
     ui->tableWidgetDataValues->setColumnWidth(0, 300);  // Название группы параметров
     ui->tableWidgetDataValues->setColumnWidth(1, 100);  // Тип доступа
-    ui->tableWidgetDataValues->setColumnWidth(2, 100);  // Тип данных
-    ui->tableWidgetDataValues->setColumnWidth(3, 100);  // Коэффициент
-    ui->tableWidgetDataValues->setColumnWidth(4, 80);   // Адрес (дес.)
-    ui->tableWidgetDataValues->setColumnWidth(5, 80);   // Адрес (hex.)
-    ui->tableWidgetDataValues->setColumnWidth(6, 200);  // Переменнная
-    ui->tableWidgetDataValues->setColumnWidth(7, 200);  // Базовая величина
-    ui->tableWidgetDataValues->setColumnWidth(8, 150);  // Примечание
+    ui->tableWidgetDataValues->setColumnWidth(2, 140);  // Тип данных ModBus
+    ui->tableWidgetDataValues->setColumnWidth(3, 140);  // Тип данных привода
+    ui->tableWidgetDataValues->setColumnWidth(4, 100);  // Коэффициент
+    ui->tableWidgetDataValues->setColumnWidth(5, 80);   // Адрес (дес.)
+    ui->tableWidgetDataValues->setColumnWidth(6, 80);   // Адрес (hex.)
+    ui->tableWidgetDataValues->setColumnWidth(7, 200);  // Переменнная
+    ui->tableWidgetDataValues->setColumnWidth(8, 70);   // Мин.
+    ui->tableWidgetDataValues->setColumnWidth(9, 70);   // Макс.
+    ui->tableWidgetDataValues->setColumnWidth(10, 200); // Базовая величина
+    ui->tableWidgetDataValues->setColumnWidth(11, 150); // Примечание
 
     tableManager->setupTable(ui->tableWidgetDataValues);
     tableManager->addPlusRow(ui->tableWidgetDataValues); //Добавляем последнюю строку с плюсиком
@@ -89,15 +93,19 @@ void MainWindow::setupDelegates() {
     QStringList accessTypes = Constants::AccessType::toStringList();
     accessTypeDelegate = new ComboBoxDelegate(accessTypes, this);
 
-    QStringList dataTypes = Constants::DataType::toStringList();
-    dataTypeDelegate = new ComboBoxDelegate(dataTypes, this);
+    QStringList modbusDataTypes = Constants::ModBusDataType::toStringList();
+    dataTypeDelegate = new ComboBoxDelegate(modbusDataTypes, this);
+
+    QStringList drvDataTypes = Constants::drvDataType::toStringList();
+    drvDataTypeDelegate = new ComboBoxDelegate(drvDataTypes, this);
 
     baseValueDelegate = new DynamicComboBoxDelegate(ui->tableWidgetBaseValues, 0, this);
 
     // Устанавливаем делегаты для соответствующих столбцов
-    ui->tableWidgetDataValues->setItemDelegateForColumn(1, accessTypeDelegate);  // Тип доступа
-    ui->tableWidgetDataValues->setItemDelegateForColumn(2, dataTypeDelegate);    // Тип данных
-    ui->tableWidgetDataValues->setItemDelegateForColumn(7, baseValueDelegate);   // Базовая величина
+    ui->tableWidgetDataValues->setItemDelegateForColumn(1, accessTypeDelegate);     // Тип доступа
+    ui->tableWidgetDataValues->setItemDelegateForColumn(2, dataTypeDelegate);       // Тип данных ModBus
+    ui->tableWidgetDataValues->setItemDelegateForColumn(3, drvDataTypeDelegate);    // Тип данных привода
+    ui->tableWidgetDataValues->setItemDelegateForColumn(10, baseValueDelegate);     // Базовая величина
 
     // Создаем делегат для формата IQ
     QStringList iqFormats;

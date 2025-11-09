@@ -133,7 +133,7 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
 
     //Формируем функцию для этого case в соотвествии с полями json
     output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
-                      .arg(IQ_TO_TYPE_FUNC[obj[Constants::JsonKeys::Data::DATA_TYPE].toString()],
+                      .arg(IQ_TO_TYPE_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
                            obj[Constants::JsonKeys::Data::VAR_NAME].toString(),
                            obj[Constants::JsonKeys::Data::GAIN].toString(),
                            baseValue,
@@ -149,7 +149,7 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
 
     //Формируем функцию для этого case в соотвествии с полями json
     output.append(QString("\t\t\t%2 = %1(reg->data,%3,%4,%5);\n")
-                      .arg(TYPE_TO_IQ_FUNC[obj[Constants::JsonKeys::Data::DATA_TYPE].toString()],
+                      .arg(TYPE_TO_IQ_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
                            obj[Constants::JsonKeys::Data::VAR_NAME].toString(),
                            obj[Constants::JsonKeys::Data::GAIN].toString(),
                            baseValue,

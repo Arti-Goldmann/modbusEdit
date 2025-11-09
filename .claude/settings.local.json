@@ -4,7 +4,8 @@
       "Bash(mkdir:*)",
       "Bash(pkg-config:*)",
       "Bash(python3:*)",
-      "Bash(cmake:*)"
+      "Bash(cmake:*)",
+      "Bash(make:*)"
     ],
     "deny": [],
     "ask": []
