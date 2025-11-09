@@ -6,7 +6,7 @@ void MBhandlerHR_R(TModbusSlaveDictObj* reg)
 	switch (reg->mbIndex)
 	{
 		case 1:
-			USER_CODE_FOR_READ;
+			reg->data = IQtoInt16(varName1,0.1,drv_params.speed_nom,0);
 			break;
 		case 3:
 			USER_CODE_FOR_READ;
@@ -32,7 +32,9 @@ void MBhandlerHR_W(TModbusSlaveDictObj* reg)
 	{
 		case 1:
 		if(!MBEDIT_IS_DRV_IN_STOP()){
-			USER_CODE_FOR_WRITE;
+			varName1 = Int16toIQ(reg->data,0.1,drv_params.speed_nom,0);
+			MBEDIT_SAT_MIN(-20.5, &varName1, drv_params.speed_nom, 0);
+			MBEDIT_SAT_MAX(10, &varName1, drv_params.speed_nom, 0);
 		}
 			break;
 		case 3:
@@ -79,7 +81,7 @@ void MBhandlerIR_R(TModbusSlaveDictObj* reg)
 // R/W-variables.
 TModbusSlaveDictObj*mbodHR[]=
 {
-	1, 0,   //USER CODE
+	1, 0,   //varName1
 	3, 0,   //USER CODE
 	5, 0,   //varName5
 	7, 0,   //USER CODE

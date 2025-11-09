@@ -6,6 +6,9 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# Set AutoUIC search paths
+set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -13,11 +16,14 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent)
 
+# Include directories
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+        src/main.cpp
+        src/mainwindow.cpp
+        include/mainwindow.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.ui
         resources.qrc
 )
 
@@ -26,15 +32,15 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         profile.json
-        constants.h
-        addressconverter.h addressconverter.cpp
-        usercodeeditordialog.h usercodeeditordialog.cpp
-        tablemanager.h tablemanager.cpp
-        profileoperations.h profileoperations.cpp
-        outfilegenerator.h outfilegenerator.cpp
-        jsonprofilemanager.h jsonprofilemanager.cpp
-        comboboxdelegate.h comboboxdelegate.cpp
-        dynamiccomboboxdelegate.h dynamiccomboboxdelegate.cpp
+        include/constants.h
+        include/addressconverter.h src/addressconverter.cpp
+        include/usercodeeditordialog.h src/usercodeeditordialog.cpp
+        include/tablemanager.h src/tablemanager.cpp
+        include/profileoperations.h src/profileoperations.cpp
+        include/outfilegenerator.h src/outfilegenerator.cpp
+        include/jsonprofilemanager.h src/jsonprofilemanager.cpp
+        include/comboboxdelegate.h src/comboboxdelegate.cpp
+        include/dynamiccomboboxdelegate.h src/dynamiccomboboxdelegate.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET modbusEdit APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
