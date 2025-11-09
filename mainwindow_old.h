@@ -1,0 +1,110 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QDebug>
+#include <QMessageBox>
+#include <QDir>
+#include <QFileDialog>
+#include <QSettings>
+#include <QFileInfo>
+#include <QDir>
+#include <QPlainTextEdit>
+#include <QtConcurrent/qtconcurrentrun.h>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QProgressDialog>
+#include <QCloseEvent>
+
+#include "outfilegenerator.h"
+#include "jsonprofilemanager.h"
+#include "comboboxdelegate.h"
+#include "dynamiccomboboxdelegate.h"
+#include "constants.h"
+
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class MainWindow;
+}
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
+private:
+    Ui::MainWindow *ui;
+    OutFileGenerator outFileGenerator;
+    JsonProfileManager jsonProfileManager;
+    void setupUI();
+    void setupTable(QTableWidget*);
+    void addPlusRow(QTableWidget*);
+    void fillTable(const QJsonArray& data, const QStringList& mainKeys, QTableWidget* table, bool configRow = false);
+    
+
+    void processError(const QString& message, const QString& title);
+    bool saveProfileHandler(bool isSaveAs);
+    void deleteRow();
+    void addRow();
+    void setRowType(const QString& type, int rowIndex, QTableWidget* table, const QVector<QString>& data = {}, const QString& accessType = Constants::AccessType::READ_ONLY);
+    void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
+    void setModified(bool modified = true);
+    bool maybeSave();
+
+    //Обработка долгих функций
+    QFutureWatcher<std::optional<JsonProfileManager::TProfileResult>>* profileWatcher;
+    QFutureWatcher<bool>* fileGenWatcher;
+    QProgressDialog* progressDialog;
+
+    // Статическая функция для загрузки профиля в фоновом потоке
+    static std::optional<JsonProfileManager::TProfileResult> loadProfileInBackground(JsonProfileManager* manager);
+    // Статическая функция для генерации файла в фоновом потоке
+    static bool genFileInBackground(OutFileGenerator* generator, QJsonArray data, QJsonArray baseValues);
+    
+    int contextMenuClickRow = -1;
+    QTableWidget* contextMenuActiveTable = nullptr;
+
+    // Флаг несохраненных изменений
+    bool hasUnsavedChanges = false;
+
+    // Делегаты для комбобоксов
+    ComboBoxDelegate *accessTypeDelegate;
+    ComboBoxDelegate *dataTypeDelegate;
+    DynamicComboBoxDelegate *baseValueDelegate;
+    ComboBoxDelegate *iqFormatDelegate;
+
+    typedef enum  {
+        R = 0, //Чтение
+        W = 1, //Запись
+    } TaccessVarieties;
+
+
+private slots:
+    void onSelectionChanged();
+    void onCellClickedData(int row, int col);
+    void onCellDoubleClickedData(int row, int col);
+    void onCellClickedBaseValues(int row, int col);
+    bool loadProfile();
+    bool onProfileLoadFinished();
+    bool saveProfile();
+    bool saveProfileAs();
+    bool startGeneration();
+    bool onGenerationFinished();
+    bool setGenerationPath();
+    void showContextMenu(const QPoint &pos);
+    void showContextMenuBaseValues(const QPoint &pos);
+    void onBaseValuesChanged();
+    void onTableDataChanged(QTableWidgetItem* item);
+};
+#endif // MAINWINDOW_H

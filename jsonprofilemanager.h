@@ -33,11 +33,6 @@ public:
     QString getLastDirectory() const;
     void setProfilePath(const QString& path) {currentProfilePath = path;};
 
-    typedef enum  {
-        R = 0, //Чтение
-        W = 1, //Запись
-    } TaccessVarieties;
-
     // Валидация
     bool validateProfile(const QJsonArray& data);
 

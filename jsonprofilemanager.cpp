@@ -140,9 +140,9 @@ QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStri
 
                 if (rowType == Constants::ParamType::USER) {
                     // Получаем код пользователя
-                    data = rootItem->data(Qt::UserRole + 1 + R);
+                    data = rootItem->data(Qt::UserRole + 1 + Constants::UserCodeOffsetInTable::R);
                     QString userCode_R = data.isValid() ? data.toString() : "";
-                    data = rootItem->data(Qt::UserRole + 1 + W);
+                    data = rootItem->data(Qt::UserRole + 1 + Constants::UserCodeOffsetInTable::W);
                     QString userCode_W = data.isValid() ? data.toString() : "";
                     obj[Constants::JsonKeys::Data::USER_CODE_R] = userCode_R;
                     obj[Constants::JsonKeys::Data::USER_CODE_W] = userCode_W;

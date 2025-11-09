@@ -27,6 +27,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         profile.json
         constants.h
+        addressconverter.h addressconverter.cpp
+        usercodeeditordialog.h usercodeeditordialog.cpp
+        tablemanager.h tablemanager.cpp
+        profileoperations.h profileoperations.cpp
         outfilegenerator.h outfilegenerator.cpp
         jsonprofilemanager.h jsonprofilemanager.cpp
         comboboxdelegate.h comboboxdelegate.cpp
