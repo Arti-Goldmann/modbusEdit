@@ -38,15 +38,15 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
         //TODO: coils и DI тоже сделать
         out << "//The file was generated automatically.\n#include \"MBedit.h\"\n\n";
         //Формируем функцию на чтение для RW (Holding Registers RW)
-        out << funcHandlerGen("MBhandlerHR_R", Constants::AccessType::READ_WRITE, data, baseValues, FOR_READ);
+        out << funcHandlerGen("MBhandlerHR_R", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP}, data, baseValues, FOR_READ);
         //Формируем функцию на запись для RW (Holding Registers RW)
-        out << funcHandlerGen("MBhandlerHR_W", Constants::AccessType::READ_WRITE, data, baseValues, FOR_WRITE);
+        out << funcHandlerGen("MBhandlerHR_W", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP}, data, baseValues, FOR_WRITE);
         //Формируем функцию на чтение для R (Input Registers R)
-        out << funcHandlerGen("MBhandlerIR_R", Constants::AccessType::READ_ONLY, data, baseValues, FOR_READ);
+        out << funcHandlerGen("MBhandlerIR_R", {Constants::AccessType::READ_ONLY}, data, baseValues, FOR_READ);
 
         out << "// R/W-variables.\n";
-        out << arrayGen("mbodHR", Constants::AccessType::READ_WRITE, data);
-        out << arrayGen("mbodIR", Constants::AccessType::READ_ONLY, data);
+        out << arrayGen("mbodHR", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP}, data);
+        out << arrayGen("mbodIR", {Constants::AccessType::READ_ONLY}, data);
 
         //TODO: coils и DI тоже сделать
         out << "TModbusSlaveDictObj mbodC[] =\n";
@@ -69,7 +69,7 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
     return true;
 }
 
-QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString& targetType, const QJsonArray& data, const QJsonArray& baseValues, TdirectionType readOrWrite) {
+QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringList& targetAccessTypes, const QJsonArray& data, const QJsonArray& baseValues, TdirectionType readOrWrite) {
     QString output;
 
     //Начало функции
@@ -78,8 +78,9 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
     for(const QJsonValue &val : std::as_const(data)) {
 
         QJsonObject obj = val.toObject();
+        QString accessType = obj[Constants::JsonKeys::Data::ACCESS_TYPE].toString();
 
-        if(obj[Constants::JsonKeys::Data::ACCESS_TYPE] == targetType) { //Нашли объект с нужным типом доступа
+        if(targetAccessTypes.contains(accessType)) { //Нашли объект с нужным типом доступа
             QString baseValue;
             QString IQformat;
 
@@ -96,6 +97,11 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
             //Начало switch case
             output.append(QString("\t\tcase %1:\n").arg(obj[Constants::JsonKeys::Data::ADDRESS_DEC].toString().toInt())); //Пишем case и адрес регистра
 
+            //Если только в стопе, и формируем код на запись, то добавляем проверку состояние в стопе ли СУ
+            if(accessType == Constants::AccessType::READ_WRITE_IN_STOP && readOrWrite == FOR_WRITE) {
+                output.append(QString("\t\tif(!%1){\n").arg(IS_DRV_IN_STOP)); //Открыли if(...) {
+            }
+
             QString switchCaseCode = "";
             if(obj[Constants::JsonKeys::Data::PARAM_TYPE] == Constants::ParamType::COMMON) {
                 //Формируем функцию на чтение или запись
@@ -107,6 +113,10 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QString&
             }
 
             output.append(switchCaseCode);
+
+            if(accessType == Constants::AccessType::READ_WRITE_IN_STOP && readOrWrite == FOR_WRITE) {
+                output.append(QString("\t\t}\n")); //Закрыли if(...) {
+            }
 
             //Конец switch case
             output.append("\t\t\tbreak;\n");
@@ -150,7 +160,7 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
     return output;
 }
 
-QString OutFileGenerator::arrayGen(const QString& arrName, const QString& targetType, const QJsonArray& data) {
+QString OutFileGenerator::arrayGen(const QString& arrName, const QStringList& targetAccessTypes, const QJsonArray& data) {
     QString output;
 
     //Начало массива
@@ -159,7 +169,9 @@ QString OutFileGenerator::arrayGen(const QString& arrName, const QString& target
     for(const QJsonValue &val : std::as_const(data)) {
 
         QJsonObject obj = val.toObject();
-        if(obj[Constants::JsonKeys::Data::ACCESS_TYPE] == targetType) { //Нашли объект с нужным типом
+        QString accessType = obj[Constants::JsonKeys::Data::ACCESS_TYPE].toString();
+
+        if(targetAccessTypes.contains(accessType)) { //Нашли объект с нужным типом
             QString comment = obj[Constants::JsonKeys::Data::PARAM_TYPE] == Constants::ParamType::COMMON ? obj[Constants::JsonKeys::Data::VAR_NAME].toString() : Constants::UiText::USER_CODE;
             QString addressDec = obj[Constants::JsonKeys::Data::ADDRESS_DEC].toString();
             output.append(QString("\t%1, 0,   //%2\n").arg(addressDec, comment));

@@ -15,7 +15,6 @@
 #include "profileoperations.h"
 #include "comboboxdelegate.h"
 #include "dynamiccomboboxdelegate.h"
-#include "constants.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {

@@ -1,4 +1,5 @@
 #include "usercodeeditordialog.h"
+#include "constants.h"
 
 UserCodeEditorDialog::UserCodeEditorDialog(const QString& accessType,
                                            const QVector<QString>& initialCode,
@@ -26,7 +27,7 @@ void UserCodeEditorDialog::setupUI() {
     int numOfAccessVarieties;
     if (accessType == Constants::AccessType::READ_ONLY) {
         numOfAccessVarieties = 1; // Только чтение
-    } else if (accessType == Constants::AccessType::READ_WRITE) {
+    } else if (accessType == Constants::AccessType::READ_WRITE || accessType == Constants::AccessType::READ_WRITE_IN_STOP) {
         numOfAccessVarieties = 2; // Чтение и запись
     } else {
         numOfAccessVarieties = 1; // По умолчанию

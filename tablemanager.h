@@ -14,8 +14,7 @@
 #include <QBrush>
 #include <QFont>
 #include "constants.h"
-#include "addressconverter.h"
-#include "usercodeeditordialog.h"
+
 
 // Класс для управления таблицами
 class TableManager : public QObject
@@ -23,7 +22,7 @@ class TableManager : public QObject
     Q_OBJECT
 
 public:
-    explicit TableManager(QObject *parent = nullptr);
+    explicit TableManager(QObject *parent = nullptr, QTableWidget* dataTable = nullptr, QTableWidget* baseValuesTable = nullptr);
 
     // Базовая настройка таблицы
     void setupTable(QTableWidget* table);
@@ -66,6 +65,8 @@ private:
     // Текущая таблица и строка для контекстного меню
     int contextMenuClickRow = -1;
     QTableWidget* contextMenuActiveTable = nullptr;
+    QTableWidget* dataTable = nullptr;
+    QTableWidget* baseValuesTable = nullptr;
 };
 
 #endif // TABLEMANAGER_H

@@ -31,7 +31,7 @@
     ],
     "data": [
         {
-            "accessType": "RW",
+            "accessType": "RW (in STOP)",
             "addressDec": "1",
             "addressHex": "0x1",
             "base": "Номинальная скорость",
@@ -40,8 +40,8 @@
             "groupName": "test1",
             "note": "test_note",
             "paramType": "userType",
-            "userCode_R": "while(0) {};",
-            "userCode_W": "while(1) {};",
+            "userCode_R": "USER_CODE_FOR_READ;",
+            "userCode_W": "USER_CODE_FOR_WRITE;",
             "varName": ""
         },
         {
@@ -54,7 +54,7 @@
             "groupName": "test2",
             "note": "test_note",
             "paramType": "userType",
-            "userCode_R": "while(0) {};",
+            "userCode_R": "USER_CODE_FOR_READ;",
             "userCode_W": "",
             "varName": ""
         },
@@ -68,8 +68,8 @@
             "groupName": "test3",
             "note": "test_note",
             "paramType": "userType",
-            "userCode_R": "",
-            "userCode_W": "",
+            "userCode_R": "USER_CODE_FOR_READ;\n",
+            "userCode_W": "USER_CODE_FOR_WRITE;",
             "varName": ""
         },
         {
@@ -113,6 +113,34 @@
             "userCode_R": "",
             "userCode_W": "",
             "varName": "varName6"
+        },
+        {
+            "accessType": "RW",
+            "addressDec": "7",
+            "addressHex": "0x7",
+            "base": "Тест",
+            "dataType": "int16",
+            "gain": "0.2",
+            "groupName": "test7",
+            "note": "test_note",
+            "paramType": "userType",
+            "userCode_R": "USER_CODE_FOR_READ;",
+            "userCode_W": "USER_CODE_FOR_WRITE;",
+            "varName": ""
+        },
+        {
+            "accessType": "RW (in STOP)",
+            "addressDec": "8",
+            "addressHex": "0x8",
+            "base": "Тест",
+            "dataType": "int16",
+            "gain": "0.5",
+            "groupName": "test8",
+            "note": "test_note",
+            "paramType": "commonType",
+            "userCode_R": "",
+            "userCode_W": "",
+            "varName": "varName8"
         }
     ]
 }

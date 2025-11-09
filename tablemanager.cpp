@@ -1,7 +1,11 @@
 #include "tablemanager.h"
+#include "usercodeeditordialog.h"
+#include "addressconverter.h"
 
-TableManager::TableManager(QObject *parent)
-    : QObject(parent)
+TableManager::TableManager(QObject *parent, QTableWidget* dataTable, QTableWidget* baseValuesTable)
+    : QObject(parent),
+    dataTable(dataTable),
+    baseValuesTable(baseValuesTable)
 {
 }
 
@@ -144,7 +148,7 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
             if(userCode_R != "") isEmpty = false;
             itemRoot->setData(Qt::UserRole + 1 + Constants::UserCodeOffsetInTable::R, userCode_R);
 
-        } else if(accessType == Constants::AccessType::READ_WRITE) { //Если RW, то тогда должен быть пользовательский код и на чтение и на запись
+        } else if(accessType == Constants::AccessType::READ_WRITE || accessType == Constants::AccessType::READ_WRITE_IN_STOP) { //Если RW, то тогда должен быть пользовательский код и на чтение и на запись
             QString userCode_R = !data.isEmpty() ? data[Constants::UserCodeOffsetInTable::R] : "";
             QString userCode_W = !data.isEmpty() ? data[Constants::UserCodeOffsetInTable::W] : "";
 
@@ -169,6 +173,7 @@ void TableManager::handleCellClicked(QTableWidget* table, int row, int col) {
     if (row == table->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
         table->insertRow(row);
+        setRowType(Constants::ParamType::COMMON, row, table);
         emit dataModified();
     }
 }
@@ -188,7 +193,7 @@ void TableManager::handleCellDoubleClicked(QTableWidget* table, int row, int col
             QTableWidgetItem* accessTypeItem = table->item(row,  Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ACCESS_TYPE));
             QString accessType = accessTypeItem ? accessTypeItem->text() : ""; //RW или R
 
-            if(accessType != Constants::AccessType::READ_ONLY && accessType != Constants::AccessType::READ_WRITE) {
+            if(!Constants::AccessType::toStringList().contains(accessType)) {
                 emit errorOccurred("Неизвестный тип доступа у параметра", "Ошибка редактирования пользовательского кода");
                 return;
             }
@@ -335,17 +340,8 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
     QAction *commonType = nullptr;
     QAction *userType = nullptr;
 
-    // Определяем, является ли это таблицей данных (имеет колонку "Переменная / значение")
-    bool isDataTable = false;
-    for (int i = 0; i < table->columnCount(); i++) {
-        QString header = table->horizontalHeaderItem(i) ? table->horizontalHeaderItem(i)->text() : "";
-        if (header == Constants::TableHeaders::VARIABLE_VALUE) {
-            isDataTable = true;
-            break;
-        }
-    }
 
-    if(isDataTable) {// Если основная таблица с данными
+    if(table == dataTable) {// Если основная таблица с данными
         QMenu *subMenu = contextMenu.addMenu("Тип параметра");
         commonType = subMenu->addAction("Обычный");
         userType = subMenu->addAction("Пользовательский");
@@ -392,16 +388,7 @@ void TableManager::addRow() {
     }
 
     //Если основная таблица с данными, то определим дефолтный тип строки
-    bool isDataTable = false;
-    for (int i = 0; i < contextMenuActiveTable->columnCount(); i++) {
-        QString header = contextMenuActiveTable->horizontalHeaderItem(i) ? contextMenuActiveTable->horizontalHeaderItem(i)->text() : "";
-        if (header == Constants::TableHeaders::VARIABLE_VALUE) {
-            isDataTable = true;
-            break;
-        }
-    }
-
-    if(isDataTable && rowIndex > -1) {
+    if(contextMenuActiveTable == dataTable && rowIndex > -1) {
         setRowType(Constants::ParamType::COMMON, rowIndex, contextMenuActiveTable);
     }
 

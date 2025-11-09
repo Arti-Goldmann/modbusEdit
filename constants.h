@@ -11,10 +11,11 @@ namespace Constants {
     namespace AccessType {
         constexpr const char* READ_ONLY = "R";
         constexpr const char* READ_WRITE = "RW";
+        constexpr const char* READ_WRITE_IN_STOP = "RW (in STOP)";
 
         // Вспомогательная функция для получения списка типов доступа
         inline QStringList toStringList() {
-            return {READ_WRITE, READ_ONLY};
+            return {READ_WRITE, READ_WRITE_IN_STOP, READ_ONLY};
         }
     }
 

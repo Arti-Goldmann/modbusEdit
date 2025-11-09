@@ -10,7 +10,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QFont>
-#include "constants.h"
+
 
 // Диалог для редактирования пользовательского кода (R и/или W)
 class UserCodeEditorDialog : public QDialog

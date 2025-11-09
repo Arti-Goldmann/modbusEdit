@@ -7,7 +7,6 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , outFileGenerator(parent)
     , jsonProfileManager(parent)
-    , tableManager(new TableManager(this))
     , profileOperations(nullptr)
     , accessTypeDelegate(nullptr)
     , dataTypeDelegate(nullptr)
@@ -21,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Создаем ProfileOperations после создания tableManager
     profileOperations = new ProfileOperations(this, &jsonProfileManager, tableManager, this);
+    tableManager = new TableManager(this, ui->tableWidgetDataValues, ui->tableWidgetBaseValues);
 
     setupUI();
     setupDelegates();
