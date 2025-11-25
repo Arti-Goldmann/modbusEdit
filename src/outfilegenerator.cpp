@@ -132,18 +132,31 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
     QString output;
     QString drvDataType = obj[Constants::JsonKeys::Data::DRV_DATA_TYPE].toString();
     QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
+    QString modbusDataType = obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString();
 
-    if (drvDataType == Constants::drvDataType::INT) {
-        // Для INT - прямая передача без преобразования
+    if (Constants::drvDataType::isStandartNum(drvDataType)) {
+        // Для StandartNum (целочисленных типов) - прямая передача без преобразования
         output.append(QString("\t\t\treg->data = %1;\n").arg(varName));
-    } else {
-        // Для FRACT - используем функцию преобразования
+    } else if (Constants::drvDataType::isIQ(drvDataType)) {
+        // Для IQ типов - используем функцию преобразования IQ
+        QString iqNumber = IQformatToIQNumber(drvDataType);  // Извлекаем номер из "IQ24" -> "24"
+        // Формируем имя функции: "IQtoInt16" -> "IQ24toInt16"
+        QString funcName = QString(IQ_TO_TYPE_FUNC[modbusDataType]).replace("IQ", "IQ" + iqNumber);
         output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
-                          .arg(IQ_TO_TYPE_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
+                          .arg(funcName,
                                varName,
                                obj[Constants::JsonKeys::Data::GAIN].toString(),
                                baseValue,
                                IQformatToBaseQ(IQformat)
+                               )
+                      );
+    } else if (Constants::drvDataType::isFloat(drvDataType)) {
+        // Для float - используем функцию преобразования float
+        output.append(QString("\t\t\treg->data = %1(%2,%3,%4);\n")
+                          .arg(FLOAT_TO_TYPE_FUNC[modbusDataType],
+                               varName,
+                               obj[Constants::JsonKeys::Data::GAIN].toString(),
+                               baseValue
                                )
                       );
     }
@@ -157,38 +170,98 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
     QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
     QString minValue = obj[Constants::JsonKeys::Data::MIN].toString();
     QString maxValue = obj[Constants::JsonKeys::Data::MAX].toString();
+    QString modbusDataType = obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString();
 
-    if (drvDataType == Constants::drvDataType::INT) {
-        // Для INT - прямая передача без преобразования
-        output.append(QString("\t\t\t%1 = reg->data;\n").arg(varName));
+    if (Constants::drvDataType::isStandartNum(drvDataType)) {
+        // Для StandartNum (целочисленных типов)
+        output.append(QString("\t\t\tint16* var_ptr = (int16*)&%1;\n").arg(varName));
+        output.append(QString("\t\t\tint16 data = reg->data;\n"));
 
         // Добавляем ограничения по min и max через if
         if (!minValue.isEmpty()) {
-            output.append(QString("\t\t\tif (%1 < %2) %1 = %2;\n").arg(varName, minValue));
+            output.append(QString("\t\t\tif (data < %1) data = %1;\n").arg(minValue));
         }
         if (!maxValue.isEmpty()) {
-            output.append(QString("\t\t\tif (%1 > %2) %1 = %2;\n").arg(varName, maxValue));
+            output.append(QString("\t\t\tif (data > %1) data = %1;\n").arg(maxValue));
         }
-    } else {
-        // Для FRACT - используем функцию преобразования
-        output.append(QString("\t\t\t%2 = %1(reg->data,%3,%4,%5);\n")
-                          .arg(TYPE_TO_IQ_FUNC[obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString()],
-                               varName,
+
+        // IPC логика
+        output.append("\t\t\t#ifdef MODBUS_IPC_USING_ENABLE\n");
+        output.append("\t\t\t\tif(MODBUS_IS_REMOTE_ADDR(var_ptr)) MODBUS_WRITE_TO_REMOTE_NON_BLOCKING(var_ptr, data, IPC_LENGTH_16_BITS);\n");
+        output.append("\t\t\t\telse *((int16*)var_ptr) = data;\n");
+        output.append("\t\t\t#else\n");
+        output.append("\t\t\t\t*((int16*)var_ptr) = data;\n");
+        output.append("\t\t\t#endif\n");
+
+    } else if (Constants::drvDataType::isIQ(drvDataType)) {
+        // Для IQ типов
+        output.append(QString("\t\t\tint32* var_ptr = (int32*)&%1;\n").arg(varName));
+        QString iqNumber = IQformatToIQNumber(drvDataType);  // Извлекаем номер из "IQ24" -> "24"
+        // Формируем имя функции: "Int16toIQ" -> "Int16toIQ24"
+        QString funcName = QString(TYPE_TO_IQ_FUNC[modbusDataType]).replace("toIQ", "toIQ" + iqNumber);
+        output.append(QString("\t\t\tint32 data = %1(reg->data,%2,%3,%4);\n")
+                          .arg(funcName,
                                obj[Constants::JsonKeys::Data::GAIN].toString(),
                                baseValue,
                                IQformatToBaseQ(IQformat)
                                )
                       );
 
-        // Добавляем ограничения по min и max через макросы
+        // Определяем функцию деления в зависимости от IQ типа
+        QString iqDivFunc = "_" + drvDataType + "div"; // Например: _IQ16div
+        QString iqMacro = QString("_IQ%1").arg(IQformatToBaseQ(IQformat)); // Например: _IQ24
+
+        // Добавляем ограничения по min и max
         if (!minValue.isEmpty()) {
-            output.append(QString("\t\t\tMBEDIT_SAT_MIN(%1, &%2, %3, %4);\n")
-                              .arg(minValue, varName, baseValue, IQformatToBaseQ(IQformat)));
+            output.append(QString("\t\t\tint32 min = %1(%2(%3), %4);\n")
+                              .arg(iqDivFunc, iqMacro, minValue, baseValue));
         }
         if (!maxValue.isEmpty()) {
-            output.append(QString("\t\t\tMBEDIT_SAT_MAX(%1, &%2, %3, %4);\n")
-                              .arg(maxValue, varName, baseValue, IQformatToBaseQ(IQformat)));
+            output.append(QString("\t\t\tint32 max = %1(%2(%3), %4);\n")
+                              .arg(iqDivFunc, iqMacro, maxValue, baseValue));
         }
+        if (!minValue.isEmpty()) {
+            output.append(QString("\t\t\tif (data < min) data = min;\n"));
+        }
+        if (!maxValue.isEmpty()) {
+            output.append(QString("\t\t\tif (data > max) data = max;\n"));
+        }
+
+        // IPC логика
+        output.append("\t\t\t#ifdef MODBUS_IPC_USING_ENABLE\n");
+        output.append("\t\t\t\tif(MODBUS_IS_REMOTE_ADDR(var_ptr)) MODBUS_WRITE_TO_REMOTE_NON_BLOCKING(var_ptr, data, IPC_LENGTH_32_BITS);\n");
+        output.append("\t\t\t\telse *((int32*)var_ptr) = data;\n");
+        output.append("\t\t\t#else\n");
+        output.append("\t\t\t\t*((int32*)var_ptr) = data;\n");
+        output.append("\t\t\t#endif\n");
+
+    } else if (Constants::drvDataType::isFloat(drvDataType)) {
+        // Для float
+        output.append(QString("\t\t\tfloat* var_ptr = &%1;\n").arg(varName));
+        output.append(QString("\t\t\tfloat data = %1(reg->data,%2,%3);\n")
+                          .arg(TYPE_TO_FLOAT_FUNC[modbusDataType],
+                               obj[Constants::JsonKeys::Data::GAIN].toString(),
+                               baseValue
+                               )
+                      );
+
+        // Добавляем ограничения по min и max
+        if (!minValue.isEmpty()) {
+            output.append(QString("\t\t\tif (data < (%1 / %2)) data = (%1 / %2);\n")
+                              .arg(minValue, baseValue));
+        }
+        if (!maxValue.isEmpty()) {
+            output.append(QString("\t\t\tif (data > (%1 / %2)) data = (%1 / %2);\n")
+                              .arg(maxValue, baseValue));
+        }
+
+        // IPC логика
+        output.append("\t\t\t#ifdef MODBUS_IPC_USING_ENABLE\n");
+        output.append("\t\t\t\tif(MODBUS_IS_REMOTE_ADDR(var_ptr)) MODBUS_WRITE_TO_REMOTE_NON_BLOCKING(var_ptr, data, IPC_LENGTH_32_BITS);\n");
+        output.append("\t\t\t\telse *((float*)var_ptr) = data;\n");
+        output.append("\t\t\t#else\n");
+        output.append("\t\t\t\t*((float*)var_ptr) = data;\n");
+        output.append("\t\t\t#endif\n");
     }
 
     return output;
@@ -198,7 +271,7 @@ QString OutFileGenerator::arrayGen(const QString& arrName, const QStringList& ta
     QString output;
 
     //Начало массива
-    output.append("TModbusSlaveDictObj*" + arrName + "[]=\n\{\n");
+    output.append("TModbusSlaveDictObj " + arrName + "[]=\n\{\n");
 
     for(const QJsonValue &val : std::as_const(data)) {
 
@@ -243,6 +316,14 @@ QString OutFileGenerator::IQformatToBaseQ(const QString& str) {
         return "0";  // Нет точки - дробная часть = 0
     }
     return str.mid(dotIndex + 1);  // Всё после точки
+}
+
+QString OutFileGenerator::IQformatToIQNumber(const QString& str) {
+    // Извлекаем номер из строки типа "IQ24" -> "24"
+    if (str.startsWith("IQ")) {
+        return str.mid(2);  // Всё после "IQ"
+    }
+    return str;
 }
 
 QString OutFileGenerator::restoreLastGenFilePath() {

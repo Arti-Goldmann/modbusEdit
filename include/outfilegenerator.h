@@ -46,9 +46,19 @@ private:
     };
 
     const QHash<QString, QString> IQ_TO_TYPE_FUNC = {
-        {"int16", "IQtoInt16"},
+        {"int16",  "IQtoInt16"},
         {"Uint16", "IQtoUInt16"},
-        };
+    };
+
+    const QHash<QString, QString> TYPE_TO_FLOAT_FUNC = {
+        {"int16",  "Int16toFloat"},
+        {"Uint16", "UInt16toFloat"},
+    };
+
+    const QHash<QString, QString> FLOAT_TO_TYPE_FUNC = {
+        {"int16",  "FloattoInt16"},
+        {"Uint16", "FloattoUInt16"},
+    };
 
     const QString IS_DRV_IN_STOP = "MBEDIT_IS_DRV_IN_STOP()"; //Макрос проверки состояния СУ
 
@@ -58,6 +68,7 @@ private:
     QString arrayGen(const QString& arrName, const QStringList& targetAccessTypes, const QJsonArray& data);
     void setError(const QString& message);
     QString IQformatToBaseQ(const QString& str);
+    QString IQformatToIQNumber(const QString& str);
 };
 
 #endif // OUTFILEGENERATOR_H

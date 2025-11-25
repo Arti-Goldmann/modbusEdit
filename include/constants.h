@@ -36,13 +36,82 @@ namespace Constants {
         }
     }
 
-        // Типы данных ModBus
+    // Типы данных привода
     namespace drvDataType {
-        constexpr const char* FRACT = "FRACT";
-        constexpr const char* INT = "INT";
+        // IQ типы (числа с фиксированной точкой)
+        constexpr const char* IQ31 = "IQ31";
+        constexpr const char* IQ30 = "IQ30";
+        constexpr const char* IQ29 = "IQ29";
+        constexpr const char* IQ28 = "IQ28";
+        constexpr const char* IQ27 = "IQ27";
+        constexpr const char* IQ26 = "IQ26";
+        constexpr const char* IQ25 = "IQ25";
+        constexpr const char* IQ24 = "IQ24";
+        constexpr const char* IQ23 = "IQ23";
+        constexpr const char* IQ22 = "IQ22";
+        constexpr const char* IQ21 = "IQ21";
+        constexpr const char* IQ20 = "IQ20";
+        constexpr const char* IQ19 = "IQ19";
+        constexpr const char* IQ18 = "IQ18";
+        constexpr const char* IQ17 = "IQ17";
+        constexpr const char* IQ16 = "IQ16";
+        constexpr const char* IQ15 = "IQ15";
+        constexpr const char* IQ14 = "IQ14";
+        constexpr const char* IQ13 = "IQ13";
+        constexpr const char* IQ12 = "IQ12";
+        constexpr const char* IQ11 = "IQ11";
+        constexpr const char* IQ10 = "IQ10";
+        constexpr const char* IQ9 = "IQ9";
+        constexpr const char* IQ8 = "IQ8";
+        constexpr const char* IQ7 = "IQ7";
+        constexpr const char* IQ6 = "IQ6";
+        constexpr const char* IQ5 = "IQ5";
+        constexpr const char* IQ4 = "IQ4";
+        constexpr const char* IQ3 = "IQ3";
+        constexpr const char* IQ2 = "IQ2";
+        constexpr const char* IQ1 = "IQ1";
+        constexpr const char* IQ0 = "IQ0";
+
+        // Float тип
+        constexpr const char* FLOAT = "float";
+
+        // StandartNum типы (целые числа)
+        constexpr const char* INT8 = "int8";
+        constexpr const char* UINT8 = "Uint8";
+        constexpr const char* INT16 = "int16";
+        constexpr const char* UINT16 = "Uint16";
+        constexpr const char* INT32 = "int32";
+        constexpr const char* UINT32 = "Uint32";
 
         inline QStringList toStringList() {
-            return {FRACT, INT};
+            return {
+                // IQ типы
+                IQ31, IQ30, IQ29, IQ28, IQ27, IQ26, IQ25, IQ24,
+                IQ23, IQ22, IQ21, IQ20, IQ19, IQ18, IQ17, IQ16,
+                IQ15, IQ14, IQ13, IQ12, IQ11, IQ10, IQ9, IQ8,
+                IQ7, IQ6, IQ5, IQ4, IQ3, IQ2, IQ1, IQ0,
+                // Float
+                FLOAT,
+                // StandartNum типы
+                INT8, UINT8, INT16, UINT16, INT32, UINT32
+            };
+        }
+
+        // Вспомогательная функция для проверки, является ли тип StandartNum (целочисленным)
+        inline bool isStandartNum(const QString& type) {
+            return type == INT8 || type == UINT8 ||
+                   type == INT16 || type == UINT16 ||
+                   type == INT32 || type == UINT32;
+        }
+
+        // Вспомогательная функция для проверки, является ли тип IQ
+        inline bool isIQ(const QString& type) {
+            return type.startsWith("IQ");
+        }
+
+        // Вспомогательная функция для проверки, является ли тип float
+        inline bool isFloat(const QString& type) {
+            return type == FLOAT;
         }
     }
 
