@@ -140,9 +140,9 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
     } else if (Constants::drvDataType::isIQ(drvDataType)) {
         // Для IQ типов - используем функцию преобразования IQ
         QString iqNumber = IQformatToIQNumber(drvDataType);  // Извлекаем номер из "IQ24" -> "24"
-        // Формируем имя функции: "IQtoInt16" -> "IQ24toInt16"
-        QString funcName = QString(IQ_TO_TYPE_FUNC[modbusDataType]).replace("IQ", "IQ" + iqNumber);
-        output.append(QString("\t\t\treg->data = %1(%2,%3,%4,%5);\n")
+        // Формируем имя функции: "MBedit_IQ24toInt16" или "MBedit_IQ24toUint16"
+        QString funcName = QString("MBedit_IQ%1to%2").arg(iqNumber, modbusDataType);
+        output.append(QString("\t\t\treg->data = %1(%2, %3, %4, %5);\n")
                           .arg(funcName,
                                varName,
                                obj[Constants::JsonKeys::Data::GAIN].toString(),
@@ -152,11 +152,12 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
                       );
     } else if (Constants::drvDataType::isFloat(drvDataType)) {
         // Для float - используем функцию преобразования float
-        output.append(QString("\t\t\treg->data = %1(%2,%3,%4);\n")
-                          .arg(FLOAT_TO_TYPE_FUNC[modbusDataType],
+        // Формируем имя функции: "MBedit_FloattoInt16" или "MBedit_FloattoUint16"
+        QString funcName = QString("MBedit_Floatto%1").arg(modbusDataType);
+        output.append(QString("\t\t\treg->data = %1(%2, %3);\n")
+                          .arg(funcName,
                                varName,
-                               obj[Constants::JsonKeys::Data::GAIN].toString(),
-                               baseValue
+                               obj[Constants::JsonKeys::Data::GAIN].toString()
                                )
                       );
     }
@@ -174,7 +175,7 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
 
     if (Constants::drvDataType::isStandartNum(drvDataType)) {
         // Для StandartNum (целочисленных типов)
-        output.append(QString("\t\t\tint16* var_ptr = (int16*)&%1;\n").arg(varName));
+        output.append("\t\t{\n");
         output.append(QString("\t\t\tint16 data = reg->data;\n"));
 
         // Добавляем ограничения по min и max через if
@@ -185,83 +186,49 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
             output.append(QString("\t\t\tif (data > %1) data = %1;\n").arg(maxValue));
         }
 
-        // IPC логика
-        output.append("\t\t\t#ifdef MODBUS_IPC_USING_ENABLE\n");
-        output.append("\t\t\t\tif(MODBUS_IS_REMOTE_ADDR(var_ptr)) MODBUS_WRITE_TO_REMOTE_NON_BLOCKING(var_ptr, data, IPC_LENGTH_16_BITS);\n");
-        output.append("\t\t\t\telse *((int16*)var_ptr) = data;\n");
-        output.append("\t\t\t#else\n");
-        output.append("\t\t\t\t*((int16*)var_ptr) = data;\n");
-        output.append("\t\t\t#endif\n");
+        output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
+        output.append("\t\t}\n");
 
     } else if (Constants::drvDataType::isIQ(drvDataType)) {
         // Для IQ типов
-        output.append(QString("\t\t\tint32* var_ptr = (int32*)&%1;\n").arg(varName));
+        output.append("\t\t{\n");
         QString iqNumber = IQformatToIQNumber(drvDataType);  // Извлекаем номер из "IQ24" -> "24"
-        // Формируем имя функции: "Int16toIQ" -> "Int16toIQ24"
-        QString funcName = QString(TYPE_TO_IQ_FUNC[modbusDataType]).replace("toIQ", "toIQ" + iqNumber);
-        output.append(QString("\t\t\tint32 data = %1(reg->data,%2,%3,%4);\n")
+        // Формируем имя функции: "MBedit_Int16toIQ24" или "MBedit_Uint16toIQ24"
+        QString funcName = QString("MBedit_%1toIQ%2").arg(modbusDataType, iqNumber);
+
+        QString min = minValue.isEmpty() ? "-1e38f" : minValue;
+        QString max = maxValue.isEmpty() ? "1e38f" : maxValue;
+
+        output.append(QString("\t\t\tint32 data = %1(reg->data, %2, %3, %4, %5, %6);\n")
                           .arg(funcName,
                                obj[Constants::JsonKeys::Data::GAIN].toString(),
                                baseValue,
-                               IQformatToBaseQ(IQformat)
+                               IQformatToBaseQ(IQformat),
+                               max,
+                               min
                                )
                       );
-
-        // Определяем функцию деления в зависимости от IQ типа
-        QString iqDivFunc = "_" + drvDataType + "div"; // Например: _IQ16div
-        QString iqMacro = QString("_IQ%1").arg(IQformatToBaseQ(IQformat)); // Например: _IQ24
-
-        // Добавляем ограничения по min и max
-        if (!minValue.isEmpty()) {
-            output.append(QString("\t\t\tint32 min = %1(%2(%3), %4);\n")
-                              .arg(iqDivFunc, iqMacro, minValue, baseValue));
-        }
-        if (!maxValue.isEmpty()) {
-            output.append(QString("\t\t\tint32 max = %1(%2(%3), %4);\n")
-                              .arg(iqDivFunc, iqMacro, maxValue, baseValue));
-        }
-        if (!minValue.isEmpty()) {
-            output.append(QString("\t\t\tif (data < min) data = min;\n"));
-        }
-        if (!maxValue.isEmpty()) {
-            output.append(QString("\t\t\tif (data > max) data = max;\n"));
-        }
-
-        // IPC логика
-        output.append("\t\t\t#ifdef MODBUS_IPC_USING_ENABLE\n");
-        output.append("\t\t\t\tif(MODBUS_IS_REMOTE_ADDR(var_ptr)) MODBUS_WRITE_TO_REMOTE_NON_BLOCKING(var_ptr, data, IPC_LENGTH_32_BITS);\n");
-        output.append("\t\t\t\telse *((int32*)var_ptr) = data;\n");
-        output.append("\t\t\t#else\n");
-        output.append("\t\t\t\t*((int32*)var_ptr) = data;\n");
-        output.append("\t\t\t#endif\n");
+        output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
+        output.append("\t\t}\n");
 
     } else if (Constants::drvDataType::isFloat(drvDataType)) {
         // Для float
-        output.append(QString("\t\t\tfloat* var_ptr = &%1;\n").arg(varName));
-        output.append(QString("\t\t\tfloat data = %1(reg->data,%2,%3);\n")
-                          .arg(TYPE_TO_FLOAT_FUNC[modbusDataType],
+        output.append("\t\t{\n");
+        // Формируем имя функции: "MBedit_Int16toFloat" или "MBedit_Uint16toFloat"
+        QString funcName = QString("MBedit_%1toFloat").arg(modbusDataType);
+
+        QString min = minValue.isEmpty() ? "-1e38f" : minValue;
+        QString max = maxValue.isEmpty() ? "1e38f" : maxValue;
+
+        output.append(QString("\t\t\tfloat data = %1(reg->data, %2, %3, %4);\n")
+                          .arg(funcName,
                                obj[Constants::JsonKeys::Data::GAIN].toString(),
-                               baseValue
+                               max,
+                               min
                                )
                       );
-
-        // Добавляем ограничения по min и max
-        if (!minValue.isEmpty()) {
-            output.append(QString("\t\t\tif (data < (%1 / %2)) data = (%1 / %2);\n")
-                              .arg(minValue, baseValue));
-        }
-        if (!maxValue.isEmpty()) {
-            output.append(QString("\t\t\tif (data > (%1 / %2)) data = (%1 / %2);\n")
-                              .arg(maxValue, baseValue));
-        }
-
-        // IPC логика
-        output.append("\t\t\t#ifdef MODBUS_IPC_USING_ENABLE\n");
-        output.append("\t\t\t\tif(MODBUS_IS_REMOTE_ADDR(var_ptr)) MODBUS_WRITE_TO_REMOTE_NON_BLOCKING(var_ptr, data, IPC_LENGTH_32_BITS);\n");
-        output.append("\t\t\t\telse *((float*)var_ptr) = data;\n");
-        output.append("\t\t\t#else\n");
-        output.append("\t\t\t\t*((float*)var_ptr) = data;\n");
-        output.append("\t\t\t#endif\n");
+        output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
+        output.append("\t\t}\n");
     }
 
     return output;
