@@ -96,6 +96,7 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
 
             //Начало switch case
             output.append(QString("\t\tcase %1:\n").arg(obj[Constants::JsonKeys::Data::ADDRESS_DEC].toString().toInt())); //Пишем case и адрес регистра
+            output.append("\t\t{\n");
 
             //Если только в стопе, и формируем код на запись, то добавляем проверку состояние в стопе ли СУ
             if(accessType == Constants::AccessType::READ_WRITE_IN_STOP && readOrWrite == FOR_WRITE) {
@@ -120,6 +121,7 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
 
             //Конец switch case
             output.append("\t\t\tbreak;\n");
+            output.append("\t\t}\n");
         }
     }
 
@@ -134,10 +136,10 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
     QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
     QString modbusDataType = obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString();
 
-    if (Constants::drvDataType::isStandartNum(drvDataType)) {
+    if (Constants::drvDataType::isStandartNum(drvDataType) || drvDataType == Constants::drvDataType::IQ0) { //IQ0 обрабатываем как обычный StandartNum
         // Для StandartNum (целочисленных типов) - прямая передача без преобразования
         output.append(QString("\t\t\treg->data = %1;\n").arg(varName));
-    } else if (Constants::drvDataType::isIQ(drvDataType)) {
+    } else if (Constants::drvDataType::isIQ(drvDataType) && drvDataType != Constants::drvDataType::IQ0) {
         // Для IQ типов - используем функцию преобразования IQ
         QString iqNumber = IQformatToIQNumber(drvDataType);  // Извлекаем номер из "IQ24" -> "24"
         // Формируем имя функции: "MBedit_IQ24toInt16" или "MBedit_IQ24toUint16"
@@ -153,7 +155,7 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
     } else if (Constants::drvDataType::isFloat(drvDataType)) {
         // Для float - используем функцию преобразования float
         // Формируем имя функции: "MBedit_FloattoInt16" или "MBedit_FloattoUint16"
-        QString funcName = QString("MBedit_Floatto%1").arg(modbusDataType);
+        QString funcName = QString("MBedit_FloatTo%1").arg(modbusDataType);
         output.append(QString("\t\t\treg->data = %1(%2, %3);\n")
                           .arg(funcName,
                                varName,
@@ -173,25 +175,26 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
     QString maxValue = obj[Constants::JsonKeys::Data::MAX].toString();
     QString modbusDataType = obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString();
 
-    if (Constants::drvDataType::isStandartNum(drvDataType)) {
+    if (Constants::drvDataType::isStandartNum(drvDataType)|| drvDataType == Constants::drvDataType::IQ0) { //IQ0 обрабатываем как обычный StandartNum
         // Для StandartNum (целочисленных типов)
-        output.append("\t\t{\n");
-        output.append(QString("\t\t\tint16 data = reg->data;\n"));
+        // Определяем тип данных в зависимости от signed/unsigned
+        bool isSigned = Constants::drvDataType::isSigned(drvDataType) || drvDataType == Constants::drvDataType::IQ0;
+        QString dataType = isSigned ? "int16" : "Uint16";
+
+        output.append(QString("\t\t\t%1 data = reg->data;\n").arg(dataType));
 
         // Добавляем ограничения по min и max через if
         if (!minValue.isEmpty()) {
-            output.append(QString("\t\t\tif (data < %1) data = %1;\n").arg(minValue));
+            output.append(QString("\t\t\tif (data < (%1)%2) data = (%1)%2;\n").arg(dataType, minValue));
         }
         if (!maxValue.isEmpty()) {
-            output.append(QString("\t\t\tif (data > %1) data = %1;\n").arg(maxValue));
+            output.append(QString("\t\t\tif (data > (%1)%2) data = (%1)%2;\n").arg(dataType, maxValue));
         }
 
         output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
-        output.append("\t\t}\n");
 
-    } else if (Constants::drvDataType::isIQ(drvDataType)) {
+    } else if (Constants::drvDataType::isIQ(drvDataType) && drvDataType != Constants::drvDataType::IQ0) {
         // Для IQ типов
-        output.append("\t\t{\n");
         QString iqNumber = IQformatToIQNumber(drvDataType);  // Извлекаем номер из "IQ24" -> "24"
         // Формируем имя функции: "MBedit_Int16toIQ24" или "MBedit_Uint16toIQ24"
         QString funcName = QString("MBedit_%1toIQ%2").arg(modbusDataType, iqNumber);
@@ -209,11 +212,9 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
                                )
                       );
         output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
-        output.append("\t\t}\n");
 
     } else if (Constants::drvDataType::isFloat(drvDataType)) {
         // Для float
-        output.append("\t\t{\n");
         // Формируем имя функции: "MBedit_Int16toFloat" или "MBedit_Uint16toFloat"
         QString funcName = QString("MBedit_%1toFloat").arg(modbusDataType);
 
@@ -228,7 +229,6 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
                                )
                       );
         output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
-        output.append("\t\t}\n");
     }
 
     return output;

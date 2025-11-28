@@ -113,6 +113,16 @@ namespace Constants {
         inline bool isFloat(const QString& type) {
             return type == FLOAT;
         }
+
+        // Вспомогательная функция для проверки, является ли тип signed
+        inline bool isSigned(const QString& type) {
+            return type == INT8 || type == INT16 || type == INT32;
+        }
+
+        // Вспомогательная функция для проверки, является ли тип unsigned
+        inline bool isUnsigned(const QString& type) {
+            return type == UINT8 || type == UINT16 || type == UINT32;
+        }
     }
 
     //Смещение внутри корневого элемента таблицы для размещения пользовательского кода
