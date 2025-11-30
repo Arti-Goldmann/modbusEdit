@@ -166,7 +166,7 @@ namespace Constants {
         constexpr const char* GROUP_NAME = "Название группы параметров / параметра";
         constexpr const char* ACCESS_TYPE = "Тип доступа";
         constexpr const char* MODBUS_DATA_TYPE = "Тип данных ModBus";
-        constexpr const char* DRV_DATA_TYPE = "Тип данных СУ";
+        constexpr const char* DRV_DATA_TYPE = "Тип данных привода";
         constexpr const char* COEFFICIENT = "Коэффициент";
         constexpr const char* ADDRESS_DEC = "Адрес (дес.)";
         constexpr const char* ADDRESS_HEX = "Адрес (hex.)";

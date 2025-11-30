@@ -19,9 +19,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Создаем ProfileOperations после создания tableManager
-    profileOperations = new ProfileOperations(this, &jsonProfileManager, tableManager, this);
+    // Сначала создаем tableManager, потом ProfileOperations
     tableManager = new TableManager(this, ui->tableWidgetDataValues, ui->tableWidgetBaseValues);
+    profileOperations = new ProfileOperations(this, &jsonProfileManager, tableManager, this);
 
     setupUI();
     setupDelegates();

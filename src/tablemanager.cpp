@@ -1,6 +1,14 @@
 #include "tablemanager.h"
 #include "usercodeeditordialog.h"
 #include "addressconverter.h"
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QSpinBox>
+#include <QColor>
+#include <QPalette>
 
 TableManager::TableManager(QObject *parent, QTableWidget* dataTable, QTableWidget* baseValuesTable)
     : QObject(parent),
@@ -90,6 +98,11 @@ void TableManager::fillTable(QTableWidget* table,
                 QString varName = obj[Constants::JsonKeys::Data::VAR_NAME].toString();
                 QVector<QString> data = {varName};
                 setRowType(paramType, rowCounter, table, data);
+
+                // Обновляем состояние ячеек только для COMMON типа
+                if(table == dataTable) {
+                    updateCellsStateByDataType(rowCounter, table);
+                }
             } else if(paramType == Constants::ParamType::USER) {
                 //Пользовательская ячейка. Выставляем PASTE YOUR CODE в ячейке, если пустая: USER CODE
                 QString userCode_R = obj[Constants::JsonKeys::Data::USER_CODE_R].toString();
@@ -97,6 +110,11 @@ void TableManager::fillTable(QTableWidget* table,
                 QVector<QString> data = {userCode_R, userCode_W};
                 QString accessType = obj[Constants::JsonKeys::Data::ACCESS_TYPE].toString();
                 setRowType(paramType, rowCounter, table, data, accessType);
+
+                // Обновляем состояние ячеек только для USER типа
+                if(table == dataTable) {
+                    updateCellsStateByDataType(rowCounter, table);
+                }
             } else if(paramType == Constants::ParamType::TITLE) {
                 //Заголовок - объединяем все столбцы
                 QString groupName = obj[Constants::JsonKeys::Data::GROUP_NAME].toString();
@@ -211,6 +229,89 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
     }
 }
 
+void TableManager::updateCellsStateByDataType(int rowIndex, QTableWidget* table) {
+    if (!table || rowIndex < 0 || rowIndex >= table->rowCount()) return;
+
+    // Проверяем тип строки - обновление состояния ячеек только для COMMON и USER типов
+    QTableWidgetItem* rootItem = table->item(rowIndex, 0);
+    QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
+
+    if (rowType != Constants::ParamType::COMMON && rowType != Constants::ParamType::USER) {
+        return; // Для TITLE и других типов не обновляем
+    }
+
+    // Получаем индексы нужных колонок
+    int colDrvDataType = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::DRV_DATA_TYPE);
+    int colCoefficient = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::COEFFICIENT);
+    int colBaseValue = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::BASE_VALUE);
+
+    if (colDrvDataType == -1 || colCoefficient == -1 || colBaseValue == -1) return;
+
+    // Получаем тип данных привода
+    QTableWidgetItem* drvTypeItem = table->item(rowIndex, colDrvDataType);
+    QString drvType = drvTypeItem ? drvTypeItem->text().trimmed() : "";
+
+    // Если тип не задан, выходим
+    if (drvType.isEmpty()) return;
+
+    // Получаем ячейки коэффициента и базовой величины
+    QTableWidgetItem* coefficientItem = table->item(rowIndex, colCoefficient);
+    if (!coefficientItem) {
+        coefficientItem = new QTableWidgetItem();
+        table->setItem(rowIndex, colCoefficient, coefficientItem);
+    }
+
+    QTableWidgetItem* baseValueItem = table->item(rowIndex, colBaseValue);
+    if (!baseValueItem) {
+        baseValueItem = new QTableWidgetItem();
+        table->setItem(rowIndex, colBaseValue, baseValueItem);
+    }
+
+    // Получаем цвет для неактивных ячеек из палитры приложения
+    QPalette palette = table->palette();
+    QColor disabledColor = palette.color(QPalette::Disabled, QPalette::Base);
+
+    // Применяем правила в зависимости от типа данных
+    if (Constants::drvDataType::isStandartNum(drvType)) {
+        // StandartNum: коэффициент и базовая величина - некликабельны и пусты
+        coefficientItem->setText("");
+        coefficientItem->setFlags(coefficientItem->flags() & ~Qt::ItemIsEditable);
+        coefficientItem->setBackground(QBrush(disabledColor));
+
+        baseValueItem->setText("");
+        baseValueItem->setFlags(baseValueItem->flags() & ~Qt::ItemIsEditable);
+        baseValueItem->setBackground(QBrush(disabledColor));
+
+    } else if (Constants::drvDataType::isFloat(drvType)) {
+        // float: базовая величина - некликабельна, коэффициент - кликабелен
+        coefficientItem->setFlags(coefficientItem->flags() | Qt::ItemIsEditable);
+        coefficientItem->setBackground(QBrush()); // Обычный фон
+
+        baseValueItem->setText("");
+        baseValueItem->setFlags(baseValueItem->flags() & ~Qt::ItemIsEditable);
+        baseValueItem->setBackground(QBrush(disabledColor));
+
+    } else if (Constants::drvDataType::isIQ(drvType)) {
+        // IQ тип
+        if (drvType == Constants::drvDataType::IQ0) {
+            // IQ0: коэффициент - некликабелен, базовая величина - кликабельна
+            coefficientItem->setText("");
+            coefficientItem->setFlags(coefficientItem->flags() & ~Qt::ItemIsEditable);
+            coefficientItem->setBackground(QBrush(disabledColor));
+
+            baseValueItem->setFlags(baseValueItem->flags() | Qt::ItemIsEditable);
+            baseValueItem->setBackground(QBrush());
+        } else {
+            // Остальные IQ: все кликабельно
+            coefficientItem->setFlags(coefficientItem->flags() | Qt::ItemIsEditable);
+            coefficientItem->setBackground(QBrush());
+
+            baseValueItem->setFlags(baseValueItem->flags() | Qt::ItemIsEditable);
+            baseValueItem->setBackground(QBrush());
+        }
+    }
+}
+
 void TableManager::handleCellClicked(QTableWidget* table, int row, int col) {
     if (row == table->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
@@ -299,6 +400,7 @@ void TableManager::handleTableDataChanged(QTableWidget* table, QTableWidgetItem*
 
     int colAddressDec = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_DEC);
     int colAddressHex = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_HEX);
+    int colDrvDataType = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::DRV_DATA_TYPE);
 
     // Проверяем, что изменился столбец адреса
     if (col == colAddressDec) {
@@ -352,6 +454,12 @@ void TableManager::handleTableDataChanged(QTableWidget* table, QTableWidgetItem*
             table->blockSignals(false);
         }
     }
+    else if (col == colDrvDataType) {
+        // Изменился тип данных привода -> обновляем состояние ячеек
+        if (table == dataTable) {
+            updateCellsStateByDataType(row, table);
+        }
+    }
 
     // Устанавливаем флаг изменений
     emit dataModified();
@@ -382,6 +490,10 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
     QAction *commonType = nullptr;
     QAction *userType = nullptr;
     QAction *titleType = nullptr;
+    QAction *renumberAction = nullptr;
+
+    QTableWidgetItem* rootItem = table->item(row, 0); //Скрытая информация текущей строки в 0 ячейке
+    QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
 
 
     if(table == dataTable) {// Если основная таблица с данными
@@ -389,6 +501,11 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
         commonType = subMenu->addAction("Обычный");
         userType = subMenu->addAction("Пользовательский");
         titleType = subMenu->addAction("Заголовок");
+
+        //Для заголовка добавляем кнопку "Перенумеровать" параметры группы
+        if(rowType == Constants::ParamType::TITLE) {
+            renumberAction = contextMenu.addAction("Перенумеровать адреса с...");
+        }
     }
 
     QAction *selectedAction = contextMenu.exec(table->mapToGlobal(pos));
@@ -406,6 +523,8 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
     } else if(titleType && selectedAction == titleType) {
         setRowType(Constants::ParamType::TITLE, contextMenuClickRow, contextMenuActiveTable);
         emit dataModified();
+    } else if(renumberAction && selectedAction == renumberAction) {
+        renumberAddresses(contextMenuClickRow);
     }
 }
 
@@ -437,6 +556,96 @@ void TableManager::addRow() {
     //Если основная таблица с данными, то определим дефолтный тип строки
     if(contextMenuActiveTable == dataTable && rowIndex > -1) {
         setRowType(Constants::ParamType::COMMON, rowIndex, contextMenuActiveTable);
+    }
+
+    emit dataModified();
+}
+
+void TableManager::renumberAddresses(int titleRow) {
+    if (!contextMenuActiveTable || titleRow < 0) return;
+
+    // Создаем простой диалог
+    QDialog dialog(qobject_cast<QWidget*>(parent()));
+    dialog.setWindowTitle("Перенумеровать адреса");
+
+    // Создаем layout
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    // Добавляем label
+    QLabel *label = new QLabel("Начальный адрес:", &dialog);
+    layout->addWidget(label);
+
+    // Добавляем SpinBox для ввода числа
+    QSpinBox *spinBox = new QSpinBox(&dialog);
+    spinBox->setMinimum(0);
+    spinBox->setMaximum(65535);
+    spinBox->setValue(0);
+    layout->addWidget(spinBox);
+
+    // Создаем кнопки с нужными текстами
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(&dialog);
+    buttonBox->addButton("Перенумеровать", QDialogButtonBox::AcceptRole);
+    buttonBox->addButton("Отменить", QDialogButtonBox::RejectRole);
+
+    connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    layout->addWidget(buttonBox);
+
+    // Показываем диалог
+    if (dialog.exec() != QDialog::Accepted) {
+        return; // Пользователь отменил ввод
+    }
+
+    int startAddress = spinBox->value();
+
+    // Последняя строка - это строка с плюсиком, поэтому предпоследняя - это rowCount - 2
+    int lastRow = contextMenuActiveTable->rowCount() - 2;
+    int currentAddress = startAddress;
+
+    // Получаем индексы колонок с адресами
+    int colAddressDec = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_DEC);
+    int colAddressHex = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_HEX);
+
+    if (colAddressDec == -1 || colAddressHex == -1) return;
+
+    // Начинаем со следующей строки после заголовка
+    for (int row = titleRow + 1; row <= lastRow; row++) {
+        QTableWidgetItem* rootItem = contextMenuActiveTable->item(row, 0);
+        QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
+
+        // Если встретили новый TITLE, останавливаемся
+        if (rowType == Constants::ParamType::TITLE) {
+            break;
+        }
+
+        // Перенумеровываем только COMMON и USER параметры
+        if (rowType == Constants::ParamType::COMMON || rowType == Constants::ParamType::USER) {
+            // Блокируем сигналы чтобы избежать лишних пересчетов
+            contextMenuActiveTable->blockSignals(true);
+
+            // Устанавливаем новый адрес (десятичный)
+            QTableWidgetItem* decItem = contextMenuActiveTable->item(row, colAddressDec);
+            if (!decItem) {
+                decItem = new QTableWidgetItem();
+                contextMenuActiveTable->setItem(row, colAddressDec, decItem);
+            }
+            decItem->setText(QString::number(currentAddress));
+
+            // Устанавливаем новый адрес (hex)
+            QString hexText = AddressConverter::decToHex(currentAddress);
+            QTableWidgetItem* hexItem = contextMenuActiveTable->item(row, colAddressHex);
+            if (!hexItem) {
+                hexItem = new QTableWidgetItem();
+                contextMenuActiveTable->setItem(row, colAddressHex, hexItem);
+            }
+            hexItem->setText(hexText);
+
+            contextMenuActiveTable->blockSignals(false);
+
+            // Увеличиваем адрес для следующего параметра
+            currentAddress++;
+        }
     }
 
     emit dataModified();

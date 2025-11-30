@@ -43,6 +43,9 @@ public:
                    const QVector<QString>& data = {},
                    const QString& accessType = Constants::AccessType::READ_ONLY);
 
+    // Обновить состояние ячеек в зависимости от типа данных привода
+    void updateCellsStateByDataType(int rowIndex, QTableWidget* table);
+
     // Обработчики событий таблицы
     void handleCellClicked(QTableWidget* table, int row, int col);
     void handleCellDoubleClicked(QTableWidget* table, int row, int col);
@@ -61,6 +64,7 @@ private:
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
     void deleteRow();
     void addRow();
+    void renumberAddresses(int titleRow);
 
     // Текущая таблица и строка для контекстного меню
     int contextMenuClickRow = -1;
