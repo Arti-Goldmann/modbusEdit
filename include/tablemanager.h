@@ -65,6 +65,7 @@ private:
     void deleteRow();
     void addRow();
     void renumberAddresses(int titleRow);
+    void deleteTitleWithParams();
 
     // Текущая таблица и строка для контекстного меню
     int contextMenuClickRow = -1;

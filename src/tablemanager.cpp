@@ -56,7 +56,7 @@ void TableManager::addPlusRow(QTableWidget* table) {
     font.setBold(true);           // жирный
 
     item->setFont(font);
-    item->setForeground(Qt::green);
+    item->setForeground(QColor(0, 140, 0)); // Темно-зеленый цвет
     item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     // Сделать нередактируемой
@@ -205,7 +205,7 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
             item->setForeground(QBrush());  // Пустая кисть = дефолтный цвет
         } else {
             item->setText(Constants::UiText::USER_CODE_OK);
-            item->setForeground(QBrush(Qt::green));
+            item->setForeground(QBrush(QColor(0, 140, 0))); // Темно-зеленый цвет
         }
         item->setFlags(item->flags() & ~Qt::ItemIsEditable); // убираем возможность редактирования
 
@@ -379,7 +379,7 @@ void TableManager::handleCellDoubleClicked(QTableWidget* table, int row, int col
                 } else {
                     if(item) {
                         item->setText(Constants::UiText::USER_CODE_OK);
-                        item->setForeground(QBrush(Qt::green));
+                        item->setForeground(QBrush(QColor(0, 140, 0))); // Темно-зеленый цвет
                     }
                 }
 
@@ -491,6 +491,7 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
     QAction *userType = nullptr;
     QAction *titleType = nullptr;
     QAction *renumberAction = nullptr;
+    QAction *deleteTitleWithParamsAction = nullptr;
 
     QTableWidgetItem* rootItem = table->item(row, 0); //Скрытая информация текущей строки в 0 ячейке
     QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
@@ -502,9 +503,10 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
         userType = subMenu->addAction("Пользовательский");
         titleType = subMenu->addAction("Заголовок");
 
-        //Для заголовка добавляем кнопку "Перенумеровать" параметры группы
+        //Для заголовка добавляем специальные кнопки
         if(rowType == Constants::ParamType::TITLE) {
             renumberAction = contextMenu.addAction("Перенумеровать адреса с...");
+            deleteTitleWithParamsAction = contextMenu.addAction("Удалить вместе с параметрами");
         }
     }
 
@@ -525,6 +527,8 @@ void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* tabl
         emit dataModified();
     } else if(renumberAction && selectedAction == renumberAction) {
         renumberAddresses(contextMenuClickRow);
+    } else if(deleteTitleWithParamsAction && selectedAction == deleteTitleWithParamsAction) {
+        deleteTitleWithParams();
     }
 }
 
@@ -556,6 +560,44 @@ void TableManager::addRow() {
     //Если основная таблица с данными, то определим дефолтный тип строки
     if(contextMenuActiveTable == dataTable && rowIndex > -1) {
         setRowType(Constants::ParamType::COMMON, rowIndex, contextMenuActiveTable);
+    }
+
+    emit dataModified();
+}
+
+void TableManager::deleteTitleWithParams() {
+    if (!contextMenuActiveTable || contextMenuClickRow < 0) return;
+
+    int titleRow = contextMenuClickRow;
+
+    // Последняя строка - это строка с плюсиком, поэтому предпоследняя - это rowCount - 2
+    int lastDataRow = contextMenuActiveTable->rowCount() - 2;
+
+    bool isFirstRow = true; // Флаг для первой строки (сам заголовок)
+
+    // Удаляем строки начиная с заголовка
+    // После каждого удаления следующая строка занимает позицию titleRow
+    while (titleRow <= lastDataRow) {
+        // Проверяем тип текущей строки на позиции titleRow
+        QTableWidgetItem* rootItem = contextMenuActiveTable->item(titleRow, 0);
+        QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
+
+        // Если встретили новый TITLE (и это не первая строка), останавливаемся
+        if (!isFirstRow && rowType == Constants::ParamType::TITLE) {
+            break;
+        }
+
+        // Удаляем строку
+        contextMenuActiveTable->removeRow(titleRow);
+        isFirstRow = false; // После первого удаления сбрасываем флаг
+
+        // Пересчитываем последнюю строку данных
+        lastDataRow = contextMenuActiveTable->rowCount() - 2;
+
+        // Проверяем, не вышли ли за пределы
+        if (titleRow > lastDataRow) {
+            break;
+        }
     }
 
     emit dataModified();
