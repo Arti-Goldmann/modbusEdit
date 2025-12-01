@@ -100,7 +100,7 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
 
             //Если только в стопе, и формируем код на запись, то добавляем проверку состояние в стопе ли СУ
             if(accessType == Constants::AccessType::READ_WRITE_IN_STOP && readOrWrite == FOR_WRITE) {
-                output.append(QString("\t\tif(!%1){\n").arg(IS_DRV_IN_STOP)); //Открыли if(...) {
+                output.append(QString("\t\tif(%1){\n").arg(IS_DRV_IN_STOP)); //Открыли if(...) {
             }
 
             QString switchCaseCode = "";
