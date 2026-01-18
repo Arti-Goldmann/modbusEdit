@@ -109,8 +109,15 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
                 switchCaseCode = (readOrWrite == FOR_READ) ? funcHandlerGen_R(funcName, obj, IQformat, baseValue):
                                                              funcHandlerGen_W(funcName, obj, IQformat, baseValue);
             } else if(obj[Constants::JsonKeys::Data::PARAM_TYPE] == Constants::ParamType::USER) {
-                switchCaseCode = (readOrWrite == FOR_READ) ? "\t\t\t" + obj[Constants::JsonKeys::Data::USER_CODE_R].toString() + "\n":
-                                                             "\t\t\t" + obj[Constants::JsonKeys::Data::USER_CODE_W].toString() + "\n";
+                QString userCode = (readOrWrite == FOR_READ) ?
+                                       obj[Constants::JsonKeys::Data::USER_CODE_R].toString() :
+                                       obj[Constants::JsonKeys::Data::USER_CODE_W].toString();
+
+                // Разбиваем на строки и добавляем отступы к каждой
+                const QStringList lines = userCode.split('\n', Qt::SkipEmptyParts);
+                for(const QString& line : lines) {
+                    switchCaseCode += "\t\t\t" + line + "\n";
+                }
             }
 
             output.append(switchCaseCode);
@@ -174,34 +181,31 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
     QString minValue = obj[Constants::JsonKeys::Data::MIN].toString();
     QString maxValue = obj[Constants::JsonKeys::Data::MAX].toString();
     QString modbusDataType = obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE].toString();
-
     if (Constants::drvDataType::isStandartNum(drvDataType)|| drvDataType == Constants::drvDataType::IQ0) { //IQ0 обрабатываем как обычный StandartNum
         // Для StandartNum (целочисленных типов)
         // Определяем тип данных в зависимости от signed/unsigned
         bool isSigned = Constants::drvDataType::isSigned(drvDataType) || drvDataType == Constants::drvDataType::IQ0;
         QString dataType = isSigned ? "int16" : "Uint16";
-
         output.append(QString("\t\t\t%1 data = reg->data;\n").arg(dataType));
-
         // Добавляем ограничения по min и max через if
+        // Для unsigned типов не добавляем проверку на минимум, если minValue == "0"
         if (!minValue.isEmpty()) {
-            output.append(QString("\t\t\tif (data < (%1)%2) data = (%1)%2;\n").arg(dataType, minValue));
+            bool skipMinCheck = !isSigned && (minValue == "0" || minValue == "0.0");
+            if (!skipMinCheck) {
+                output.append(QString("\t\t\tif (data < (%1)%2) data = (%1)%2;\n").arg(dataType, minValue));
+            }
         }
         if (!maxValue.isEmpty()) {
             output.append(QString("\t\t\tif (data > (%1)%2) data = (%1)%2;\n").arg(dataType, maxValue));
         }
-
         output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
-
     } else if (Constants::drvDataType::isIQ(drvDataType) && drvDataType != Constants::drvDataType::IQ0) {
         // Для IQ типов
         QString iqNumber = IQformatToIQNumber(drvDataType);  // Извлекаем номер из "IQ24" -> "24"
         // Формируем имя функции: "MBedit_Int16toIQ24" или "MBedit_Uint16toIQ24"
         QString funcName = QString("MBedit_%1toIQ%2").arg(modbusDataType, iqNumber);
-
         QString min = minValue.isEmpty() ? "-1e38f" : minValue;
         QString max = maxValue.isEmpty() ? "1e38f" : maxValue;
-
         output.append(QString("\t\t\tint32 data = %1(reg->data, %2, %3, %4, %5, %6);\n")
                           .arg(funcName,
                                obj[Constants::JsonKeys::Data::GAIN].toString(),
@@ -212,15 +216,12 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
                                )
                       );
         output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
-
     } else if (Constants::drvDataType::isFloat(drvDataType)) {
         // Для float
         // Формируем имя функции: "MBedit_Int16toFloat" или "MBedit_Uint16toFloat"
         QString funcName = QString("MBedit_%1toFloat").arg(modbusDataType);
-
         QString min = minValue.isEmpty() ? "-1e38f" : minValue;
         QString max = maxValue.isEmpty() ? "1e38f" : maxValue;
-
         output.append(QString("\t\t\tfloat data = %1(reg->data, %2, %3, %4);\n")
                           .arg(funcName,
                                obj[Constants::JsonKeys::Data::GAIN].toString(),
@@ -230,7 +231,6 @@ QString OutFileGenerator::funcHandlerGen_W(const QString& funcName, const QJsonO
                       );
         output.append(QString("\t\t\tMBedit_WriteToValue((void*)&%1, data, sizeof(%1));\n").arg(varName));
     }
-
     return output;
 }
 
