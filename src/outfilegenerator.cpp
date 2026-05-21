@@ -36,7 +36,8 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
     QTextStream out(&file);
     try{
         //TODO: coils и DI тоже сделать
-        out << "//The file was generated automatically.\n#include \"MBedit.h\"\n\n";
+        out << "//The file was generated automatically.\n#include \"MBedit.h\"\n\n"; //Раскоментить чтобы обычные файлы генерировать
+
         //Формируем функцию на чтение для RW (Holding Registers RW)
         out << funcHandlerGen("MBhandlerHR_R", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP}, data, baseValues, FOR_READ);
         //Формируем функцию на запись для RW (Holding Registers RW)
@@ -73,7 +74,7 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
     QString output;
 
     //Начало функции
-    output.append("void " + funcName + "(TModbusSlaveDictObj* reg)\n{\n\tswitch (reg->mbIndex)\n\t{\n");
+    output.append("void " + funcName + "(TModbusSlaveDictObj* reg, Uint16 callbackTag)\n{\n\tswitch (reg->mbIndex)\n\t{\n");
 
     for(const QJsonValue &val : std::as_const(data)) {
 
