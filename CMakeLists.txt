@@ -87,9 +87,20 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(modbusEdit)
 endif()
 
-# Run deploy.bat after successful build
-add_custom_command(TARGET modbusEdit POST_BUILD
+# Locate windeployqt next to qmake of the active Qt kit
+get_target_property(_qmake_exe Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+get_filename_component(_qt_bin_dir "${_qmake_exe}" DIRECTORY)
+
+# Deploy to the Release folder on every build (not only when the exe relinks).
+# A custom target with no output is always considered out of date, so Build/Run
+# in Qt Creator always refreshes Release even if sources didn't change.
+# Pass the actual built exe path and Qt bin dir so the script is kit-agnostic.
+add_custom_target(deploy_release ALL
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/deploy.bat
+            "$<TARGET_FILE:modbusEdit>"
+            "${_qt_bin_dir}"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Running deployment script..."
+    COMMENT "Deploying modbusEdit to Release folder..."
+    VERBATIM
 )
+add_dependencies(deploy_release modbusEdit)

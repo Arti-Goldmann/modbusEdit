@@ -1,37 +1,48 @@
 @echo off
 echo Copying modbusEdit.exe to Release folder...
 
+REM %1 = full path to the freshly built modbusEdit.exe (passed from CMake)
+REM %2 = Qt bin directory containing windeployqt.exe (passed from CMake)
+set "EXE_PATH=%~1"
+set "QT_BIN_DIR=%~2"
+
+REM Fallback to the 6.10.2 build path if no argument was provided
+if "%EXE_PATH%"=="" set "EXE_PATH=build\Desktop_Qt_6_10_2_MinGW_64_bit-Debug\modbusEdit.exe"
+if "%QT_BIN_DIR%"=="" set "QT_BIN_DIR=C:\Qt\6.10.2\mingw_64\bin"
+
+REM CMake passes forward-slash paths; cmd copy/windeployqt need backslashes
+set "EXE_PATH=%EXE_PATH:/=\%"
+set "QT_BIN_DIR=%QT_BIN_DIR:/=\%"
+
+if not exist "%EXE_PATH%" (
+    echo Error: built exe not found at "%EXE_PATH%"
+    exit /b 1
+)
+
 REM Create Release directory if it doesn't exist
 if not exist "Release" mkdir Release
 
 REM Copy the executable
-copy "build\Desktop_Qt_6_9_1_MinGW_64_bit-Debug\modbusEdit.exe" "Release\modbusEdit.exe"
+copy /Y "%EXE_PATH%" "Release\modbusEdit.exe"
 
 if %errorlevel% neq 0 (
     echo Error copying file!
-    pause
     exit /b 1
 )
 
 echo File copied successfully!
 
-REM Check if necessary Qt DLLs already exist in Release directory
-echo Checking for existing Qt DLLs...
-if exist "Release\Qt6Core.dll" if exist "Release\Qt6Gui.dll" if exist "Release\Qt6Widgets.dll" (
-    echo Qt DLLs already exist, skipping windeployqt...
-) else (
-    REM Change to Release directory and run windeployqt
-    echo Running windeployqt...
-    cd Release
-    "C:\Qt\6.9.1\mingw_64\bin\windeployqt.exe" modbusEdit.exe
-
-    if %errorlevel% neq 0 (
-        echo Error running windeployqt!
-        pause
-        exit /b 1
-    )
+REM Always run windeployqt so DLLs stay in sync with the active Qt kit.
+REM windeployqt is incremental (it only updates changed files), so this is
+REM cheap and stays correct when switching between Qt versions.
+echo Running windeployqt...
+cd Release
+"%QT_BIN_DIR%\windeployqt.exe" --no-translations modbusEdit.exe
+if errorlevel 1 (
+    echo Error running windeployqt!
     cd ..
+    exit /b 1
 )
+cd ..
 
 echo Deployment completed successfully!
-pause
