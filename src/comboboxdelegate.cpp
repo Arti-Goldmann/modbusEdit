@@ -1,5 +1,6 @@
 #include "comboboxdelegate.h"
 #include <QComboBox>
+#include <QTimer>
 
 ComboBoxDelegate::ComboBoxDelegate(const QStringList &items, QObject *parent)
     : QStyledItemDelegate(parent), m_items(items)
@@ -15,6 +16,12 @@ QWidget *ComboBoxDelegate::createEditor(QWidget *parent,
     
     QComboBox *comboBox = new QComboBox(parent);
     comboBox->addItems(m_items);
+
+    // Открываем список сразу после создания редактора, чтобы одного клика по ячейке было достаточно.
+    QTimer::singleShot(0, comboBox, [comboBox]() {
+        comboBox->showPopup();
+    });
+
     return comboBox;
 }
 

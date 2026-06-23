@@ -1,6 +1,7 @@
 #include "dynamiccomboboxdelegate.h"
 #include <QComboBox>
 #include <QTableWidgetItem>
+#include <QTimer>
 
 DynamicComboBoxDelegate::DynamicComboBoxDelegate(QTableWidget *sourceTable, int sourceColumn, QObject *parent)
     : QStyledItemDelegate(parent), m_sourceTable(sourceTable), m_sourceColumn(sourceColumn)
@@ -19,6 +20,11 @@ QWidget *DynamicComboBoxDelegate::createEditor(QWidget *parent,
     // Динамически заполняем список из исходной таблицы
     QStringList items = getItemsFromSourceTable();
     comboBox->addItems(items);
+
+    // Открываем динамический список сразу после создания редактора.
+    QTimer::singleShot(0, comboBox, [comboBox]() {
+        comboBox->showPopup();
+    });
     
     return comboBox;
 }

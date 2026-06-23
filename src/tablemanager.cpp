@@ -318,6 +318,45 @@ void TableManager::handleCellClicked(QTableWidget* table, int row, int col) {
         table->insertRow(row);
         setRowType(Constants::ParamType::COMMON, row, table);
         emit dataModified();
+        return;
+    }
+
+    // По умолчанию QTableWidget открывает редактор ячейки не с первого клика,
+    // поэтому для колонок с комбобоксами явно запускаем редактирование сами.
+    // Дальше делегат ComboBoxDelegate/DynamicComboBoxDelegate создаст QComboBox
+    // и сразу раскроет его список через showPopup().
+    bool isComboColumn = false;
+
+    if (table == dataTable) {
+        // В основной таблице выпадающие списки стоят не подряд, поэтому
+        // определяем их по заголовкам, а не по "магическим" номерам колонок.
+        // Так код переживет перестановку колонок в Constants::TableHeaders.
+        const QStringList dataHeaders = Constants::TableHeaders::DATA_TABLE();
+        isComboColumn =
+            col == dataHeaders.indexOf(Constants::TableHeaders::ACCESS_TYPE) ||
+            col == dataHeaders.indexOf(Constants::TableHeaders::MODBUS_DATA_TYPE) ||
+            col == dataHeaders.indexOf(Constants::TableHeaders::DRV_DATA_TYPE) ||
+            col == dataHeaders.indexOf(Constants::TableHeaders::BASE_VALUE);
+    } else if (table == baseValuesTable) {
+        // В таблице базовых величин выпадающим списком является столбец "Формат IQ".
+        // Здесь пока используем номер колонки напрямую: у таблицы базовых
+        // величин нет отдельных констант для имен конкретных колонок.
+        isComboColumn = (col == 2);
+    }
+
+    if (isComboColumn) {
+        // Если ячейки еще нет, открывать нечего: делегату нужен существующий
+        // QTableWidgetItem, к которому Qt привяжет редактор.
+        QTableWidgetItem* clickedItem = table->item(row, col);
+
+        // Запускаем редактор только для редактируемых ячеек, чтобы отключенные поля не раскрывались.
+        // Это важно для полей, которые TableManager отключает в зависимости
+        // от выбранного типа данных привода.
+        if (clickedItem && (clickedItem->flags() & Qt::ItemIsEditable)) {
+            // editItem() вызывает назначенный на колонку делегат. Для combo-
+            // колонок это создает QComboBox, а уже сам делегат раскрывает список.
+            table->editItem(clickedItem);
+        }
     }
 }
 
