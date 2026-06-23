@@ -3,7 +3,8 @@
 namespace AddressConverter {
 
 QString decToHex(int decValue) {
-    QString hexDigits = QString("%1").arg(decValue, 0, 16, QChar('0')).toUpper();
+    // Оставляем четыре hex-цифры после 0x, например 0x0001.
+    QString hexDigits = QString("%1").arg(decValue, 4, 16, QChar('0')).toUpper();
     return QString("0x%1").arg(hexDigits);
 }
 
