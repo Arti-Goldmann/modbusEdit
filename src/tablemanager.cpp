@@ -178,11 +178,23 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
     }
 
     if(rowType == Constants::ParamType::COMMON) {
+        // Если строку создали вручную, а не загрузили из профиля,
+        // сразу заполняем поля с выпадающими списками значениями по умолчанию.
+        if (data.isEmpty()) {
+            applyDefaultComboValues(rowIndex, table);
+        }
+
         QString varName = !data.isEmpty() ? data[0] : "";
         item->setText(varName); //Переменная хранится в 0 элементе
         item->setFlags(item->flags() | Qt::ItemIsEditable); // делаем редактируемым
 
     } else if (rowType == Constants::ParamType::USER) {
+        // При переключении новой строки в пользовательский тип сохраняем
+        // те же значения по умолчанию, чтобы комбобоксы не оставались пустыми.
+        if (data.isEmpty()) {
+            applyDefaultComboValues(rowIndex, table);
+        }
+
         bool isEmpty = true;
         //В корневой элемент сохраняем пользовательский код
         if(accessType == Constants::AccessType::READ_ONLY) { //Если R, то тогда нам должны были передать только посльзовательский код на чтение
@@ -227,6 +239,54 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
         // Делаем редактируемым
         itemRoot->setFlags(itemRoot->flags() | Qt::ItemIsEditable);
     }
+}
+
+void TableManager::applyDefaultComboValues(int rowIndex, QTableWidget* table) {
+    // Дефолты нужны только основной таблице с картой регистров.
+    // Таблицу базовых величин здесь не трогаем.
+    if (table != dataTable || rowIndex < 0 || rowIndex >= table->rowCount()) return;
+
+    // Универсальная установка значения: создаем ячейку при необходимости,
+    // но не перезаписываем уже введенные или загруженные из профиля данные.
+    auto setTextIfEmpty = [table, rowIndex](int col, const QString& value) {
+        if (col < 0 || col >= table->columnCount() || value.isEmpty()) return;
+
+        QTableWidgetItem* item = table->item(rowIndex, col);
+        if (!item) {
+            item = new QTableWidgetItem();
+            table->setItem(rowIndex, col, item);
+        }
+
+        if (item->text().trimmed().isEmpty()) {
+            item->setText(value);
+        }
+    };
+
+    // Для новых записей сразу выбираем первые варианты из выпадающих списков.
+    setTextIfEmpty(Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ACCESS_TYPE),
+                   Constants::AccessType::toStringList().value(0));
+    setTextIfEmpty(Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::MODBUS_DATA_TYPE),
+                   Constants::ModBusDataType::toStringList().value(0));
+
+    // Тип данных привода по умолчанию нужен не первый из списка, а IQ24.
+    setTextIfEmpty(Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::DRV_DATA_TYPE),
+                   Constants::drvDataType::IQ24);
+
+    // Список базовых величин динамический: он берется из соседней таблицы,
+    // поэтому здесь вручную выбираем первый непустой пункт, кроме строки с плюсом.
+    QStringList baseValues;
+    if (baseValuesTable) {
+        for (int row = 0; row < baseValuesTable->rowCount() - 1; ++row) {
+            QTableWidgetItem* baseItem = baseValuesTable->item(row, 0);
+            if (baseItem && !baseItem->text().trimmed().isEmpty()) {
+                baseValues << baseItem->text();
+            }
+        }
+    }
+
+    // Базовая величина тоже берется первым доступным вариантом из своей таблицы.
+    setTextIfEmpty(Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::BASE_VALUE),
+                   baseValues.value(0));
 }
 
 void TableManager::updateCellsStateByDataType(int rowIndex, QTableWidget* table) {

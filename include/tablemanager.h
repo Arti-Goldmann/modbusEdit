@@ -64,6 +64,7 @@ private:
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
     void deleteRow();
     void addRow();
+    void applyDefaultComboValues(int rowIndex, QTableWidget* table);
     void renumberAddresses(int titleRow);
     void deleteTitleWithParams();
 
