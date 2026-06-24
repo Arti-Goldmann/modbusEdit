@@ -3,7 +3,9 @@
 
 #include <QString>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonParseError>
 #include <QWidget>
 #include <optional>
 #include <QFile>
