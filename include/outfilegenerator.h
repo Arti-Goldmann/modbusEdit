@@ -20,20 +20,29 @@
 class OutFileGenerator
 {
 public:
+    enum class OutputEncoding {
+        Utf8,
+        Cp1251
+    };
+
     OutFileGenerator(QWidget* parent);
     bool setGenerationPath();
     QString getLastError();
     QString getCurrentGenFilePath() const { return currentGenFilePath; }
     QString restoreLastGenFilePath();
     bool hasActiveGenFile() const { return !currentGenFilePath.isEmpty(); }
+    void setOutputEncoding(OutputEncoding encoding) { outputEncoding = encoding; }
 
     bool generate(const QJsonArray& data, const QJsonArray& baseValues);
 private:
     QWidget* parent;
     QString lastError;
     QString currentGenFilePath;
+    OutputEncoding outputEncoding = OutputEncoding::Utf8;
     QString getLastDirectory() const;
     void saveLastDirectory(const QString& path);
+    bool writeGeneratedText(QFile& file, const QString& text);
+    QByteArray encodeCp1251(const QString& text) const;
 
     typedef enum {
         FOR_READ,

@@ -247,6 +247,14 @@ void MainWindow::onStartGeneration(){
     QApplication::processEvents();
 
     // Создаем watcher для отслеживания завершения
+    // Пользователь выбирает кодировку радиокнопками в главном окне.
+    // Сохраняем выбор в генераторе перед запуском фонового потока, чтобы
+    // сама генерация не обращалась к UI из другого потока.
+    outFileGenerator.setOutputEncoding(
+        ui->radioCp1251->isChecked()
+            ? OutFileGenerator::OutputEncoding::Cp1251
+            : OutFileGenerator::OutputEncoding::Utf8);
+
     fileGenWatcher = new QFutureWatcher<bool>(this);
 
     // Подключаем сигнал завершения

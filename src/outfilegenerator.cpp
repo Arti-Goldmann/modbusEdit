@@ -1,5 +1,9 @@
 #include "outfilegenerator.h"
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 OutFileGenerator::OutFileGenerator(QWidget* parent) : parent(parent) {}
 
 bool OutFileGenerator::setGenerationPath() {
@@ -33,7 +37,8 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
         return false;
     }
 
-    QTextStream out(&file);
+    QString output;
+    QTextStream out(&output);
     try{
         //TODO: coils и DI тоже сделать
         out << "//The file was generated automatically.\n#include \"MBedit.h\"\n\n"; //Раскоментить чтобы обычные файлы генерировать
@@ -61,6 +66,11 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
         out << "};\n";
         out << "\n";
 
+        if (!writeGeneratedText(file, output)) {
+            file.close();
+            return false;
+        }
+
         file.close();
     } catch (const std::exception& e) {
         setError(QString("Ошибка при генерации: %1").arg(e.what()));
@@ -68,6 +78,73 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
         return false;
     }
     return true;
+}
+
+bool OutFileGenerator::writeGeneratedText(QFile& file, const QString& text) {
+    QByteArray encodedText;
+
+    if (outputEncoding == OutputEncoding::Utf8) {
+        // UTF-8 оставляем кодировкой по умолчанию для совместимости с текущим поведением программы.
+        encodedText = text.toUtf8();
+    } else {
+        // CP1251 кодируем сами: в Qt 6 именованный кодировщик windows-1251
+        // может быть недоступен в конкретной сборке Qt.
+        encodedText = encodeCp1251(text);
+    }
+
+    qint64 bytesWritten = file.write(encodedText);
+    if (bytesWritten == -1) {
+        setError(QString("Не удалось записать в файл: %1\nОшибка: %2").arg(currentGenFilePath, file.errorString()));
+        return false;
+    }
+    if (bytesWritten != encodedText.size()) {
+        setError(QString("В файл записались не все данные: %1\nОшибка: %2").arg(currentGenFilePath, file.errorString()));
+        return false;
+    }
+
+    return true;
+}
+
+QByteArray OutFileGenerator::encodeCp1251(const QString& text) const {
+#ifdef Q_OS_WIN
+    // QString хранит текст как UTF-16, а Windows умеет напрямую конвертировать
+    // UTF-16 в нужную однобайтовую кодировку. Так мы не зависим от наличия
+    // QTextCodec/QStringEncoder и не поддерживаем таблицу CP1251 вручную.
+    constexpr UINT cp1251 = 1251;
+    const auto* wideText = reinterpret_cast<const wchar_t*>(text.utf16());
+    const int wideLength = text.size();
+
+    int byteLength = WideCharToMultiByte(
+        cp1251,
+        0,
+        wideText,
+        wideLength,
+        nullptr,
+        0,
+        nullptr,
+        nullptr);
+
+    if (byteLength <= 0) {
+        return {};
+    }
+
+    QByteArray result(byteLength, Qt::Uninitialized);
+    WideCharToMultiByte(
+        cp1251,
+        0,
+        wideText,
+        wideLength,
+        result.data(),
+        byteLength,
+        nullptr,
+        nullptr);
+
+    return result;
+#else
+    // Сейчас приложение собирается под Windows. Если понадобится другая ОС,
+    // для CP1251 лучше добавить отдельную реализацию или вернуть ошибку выше.
+    return text.toUtf8();
+#endif
 }
 
 QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringList& targetAccessTypes, const QJsonArray& data, const QJsonArray& baseValues, TdirectionType readOrWrite) {
