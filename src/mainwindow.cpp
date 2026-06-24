@@ -229,7 +229,9 @@ void MainWindow::onStartGeneration(){
     QJsonArray data = resultReadJsonOpt.value().data;
     QJsonArray baseValues = resultReadJsonOpt.value().baseValues;
 
-    if(data.isEmpty() || baseValues.isEmpty()) {
+    // Отсутствие базовых величин в профиле допустимо, поэтому проверяем
+    // только карту регистров. Генератор корректно отрабатывает пустой baseValues.
+    if(data.isEmpty()) {
         progressDialog->close();
         progressDialog->deleteLater();
         processError(QString("Пустой профиль: %1").arg(jsonProfileManager.getCurrentProfilePath()), "Ошибка генерации файла");
