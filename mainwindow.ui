@@ -59,12 +59,46 @@
       </item>
      </layout>
     </item>
-    <item alignment="Qt::AlignmentFlag::AlignLeft">
-     <widget class="QPushButton" name="startGenBtn">
-      <property name="text">
-       <string>Генерировать MBedit.c</string>
-      </property>
-     </widget>
+    <item>
+     <layout class="QHBoxLayout" name="generationControlsLayout">
+      <item>
+       <widget class="QPushButton" name="startGenBtn">
+        <property name="text">
+         <string>Генерировать MBedit.c</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="generationEncodingSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioUtf8">
+        <property name="text">
+         <string>UTF-8</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioCp1251">
+        <property name="text">
+         <string>CP1251</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="QTabWidget" name="tabWidget">
