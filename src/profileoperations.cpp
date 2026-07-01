@@ -31,6 +31,20 @@ void ProfileOperations::loadProfile(QTableWidget* dataTable, QTableWidget* baseV
         return;
     }
 
+    startProfileLoad(profilePath, dataTable, baseValuesTable);
+}
+
+void ProfileOperations::loadProfileFromPath(const QString& profilePath, QTableWidget* dataTable, QTableWidget* baseValuesTable) {
+    // Этот метод нужен для меню "Недавнее...": путь уже выбран пользователем
+    // из истории, поэтому повторно показывать QFileDialog не надо.
+    startProfileLoad(profilePath, dataTable, baseValuesTable);
+}
+
+void ProfileOperations::startProfileLoad(const QString& profilePath, QTableWidget* dataTable, QTableWidget* baseValuesTable) {
+    // Общая точка входа для загрузки профиля. Обычное "Открыть" и пункт из
+    // "Недавних" различаются только способом получения пути, а сама загрузка
+    // должна оставаться одинаковой: currentProfilePath, progress dialog, watcher
+    // и заполнение таблиц работают по прежнему маршруту.
     profileManager->setProfilePath(profilePath);
 
     // Сохраняем таблицы для использования в onProfileLoadFinished

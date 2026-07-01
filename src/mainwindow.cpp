@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QAction>
 #include <QApplication>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -125,6 +126,7 @@ void MainWindow::connectSignals() {
     connect(ui->open, &QAction::triggered, this, &MainWindow::onLoadProfile);
     connect(ui->save, &QAction::triggered, this, &MainWindow::onSaveProfile);
     connect(ui->saveAs, &QAction::triggered, this, &MainWindow::onSaveProfileAs);
+    refreshRecentProfilesMenu();
 
     // Сигналы от TableManager
     connect(tableManager, &TableManager::dataModified, this, &MainWindow::onDataModified);
@@ -173,6 +175,62 @@ void MainWindow::connectSignals() {
 
 void MainWindow::onLoadProfile() {
     profileOperations->loadProfile(ui->tableWidgetDataValues, ui->tableWidgetBaseValues);
+}
+
+void MainWindow::refreshRecentProfilesMenu() {
+    // Меню "Недавнее..." пересобирается целиком каждый раз после открытия,
+    // сохранения или удаления отсутствующего файла из истории. Это избавляет
+    // от необходимости синхронизировать отдельные QAction с текущим QStringList.
+    ui->menuRecent->clear();
+
+    QStringList recentProfiles = jsonProfileManager.getRecentProfiles();
+    if (recentProfiles.isEmpty()) {
+        // Пустое подменю выглядит сломанным, поэтому оставляем в нем неактивный
+        // пункт-подсказку. Пользователь сразу видит, что история пока просто пуста.
+        QAction* emptyAction = ui->menuRecent->addAction(QString::fromUtf8(u8"Нет недавних файлов"));
+        emptyAction->setEnabled(false);
+        return;
+    }
+
+    for (const QString& profilePath : recentProfiles) {
+        // В тексте пункта показываем полный путь: так пользователь может отличить
+        // одноименные JSON-файлы из разных папок без дополнительных диалогов.
+        QAction* action = ui->menuRecent->addAction(profilePath);
+        action->setData(profilePath);
+
+        // Каждый пункт хранит полный путь в data(), чтобы текст меню можно было
+        // менять независимо от фактического пути файла.
+        connect(action, &QAction::triggered, this, [this, action]() {
+            openRecentProfile(action->data().toString());
+        });
+    }
+}
+
+void MainWindow::openRecentProfile(const QString& profilePath) {
+    // Перед переходом к другому профилю даем пользователю сохранить текущие
+    // правки тем же стандартным механизмом, что используется при закрытии окна.
+    if (!maybeSave()) {
+        return;
+    }
+
+    // Недавний файл мог быть удален или перенесен уже после того, как путь попал
+    // в QSettings. В этом случае не пытаемся запускать загрузчик профиля, а сразу
+    // чистим историю и показываем понятное сообщение.
+    QFileInfo fileInfo(profilePath);
+    if (!fileInfo.exists() || !fileInfo.isFile()) {
+        jsonProfileManager.removeRecentProfile(profilePath);
+        refreshRecentProfilesMenu();
+        QMessageBox::warning(
+            this,
+            QString::fromUtf8(u8"Файл не найден"),
+            QString::fromUtf8(u8"Файл из списка недавних не найден:\n%1").arg(profilePath));
+        return;
+    }
+
+    // Дальше используем тот же путь загрузки, что и обычное "Открыть": чтение
+    // остается асинхронным, таблицы заполняются через TableManager, а сигнал
+    // profileLoaded потом сам обновит подпись файла и список недавних профилей.
+    profileOperations->loadProfileFromPath(profilePath, ui->tableWidgetDataValues, ui->tableWidgetBaseValues);
 }
 
 void MainWindow::onSaveProfile() {
@@ -312,6 +370,8 @@ void MainWindow::onDataModified() {
 
 void MainWindow::onProfileLoaded(const QString& profilePath) {
     QFileInfo fileInfo(profilePath);
+    jsonProfileManager.addRecentProfile(profilePath);
+    refreshRecentProfilesMenu();
     ui->fileLabel->setText(QString("Файл профиля: %1").arg(fileInfo.fileName()));
     statusBar()->showMessage("Файл успешно открыт", 5000);
 
@@ -329,6 +389,8 @@ void MainWindow::onProfileLoaded(const QString& profilePath) {
 
 void MainWindow::onProfileSaved(const QString& profilePath) {
     QFileInfo fileInfo(profilePath);
+    jsonProfileManager.addRecentProfile(profilePath);
+    refreshRecentProfilesMenu();
     ui->fileLabel->setText(QString("Файл профиля: %1").arg(fileInfo.fileName()));
     statusBar()->showMessage("Файл успешно сохранен", 5000);
     setModified(false);  // Сбрасываем флаг изменений после успешного сохранения

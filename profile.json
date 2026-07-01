@@ -50,7 +50,7 @@
         {
             "accessType": "RW (in STOP)",
             "addressDec": "1",
-            "addressHex": "0x1",
+            "addressHex": "0x0001",
             "base": "Номинальная скорость",
             "drvDataType": "FRACT",
             "gain": "0.1",
@@ -67,7 +67,7 @@
         {
             "accessType": "R",
             "addressDec": "2",
-            "addressHex": "0x2",
+            "addressHex": "0x0002",
             "base": "Номинальная скорость",
             "drvDataType": "FRACT",
             "gain": "0.2",
@@ -84,7 +84,7 @@
         {
             "accessType": "RW",
             "addressDec": "3",
-            "addressHex": "0x3",
+            "addressHex": "0x0003",
             "base": "Номинальное напряжение",
             "drvDataType": "FRACT",
             "gain": "0.3",
@@ -101,7 +101,7 @@
         {
             "accessType": "R",
             "addressDec": "4",
-            "addressHex": "0x4",
+            "addressHex": "0x0004",
             "base": "Номинальное напряжение",
             "drvDataType": "FRACT",
             "gain": "0.1",
@@ -135,7 +135,7 @@
         {
             "accessType": "RW",
             "addressDec": "5",
-            "addressHex": "0x5",
+            "addressHex": "0x0005",
             "base": "Номинальный ток",
             "drvDataType": "INT",
             "gain": "0.2",
@@ -152,7 +152,7 @@
         {
             "accessType": "R",
             "addressDec": "6",
-            "addressHex": "0x6",
+            "addressHex": "0x0006",
             "base": "Номинальный ток",
             "drvDataType": "INT",
             "gain": "0.3",
@@ -169,10 +169,10 @@
         {
             "accessType": "RW",
             "addressDec": "7",
-            "addressHex": "0x7",
+            "addressHex": "0x0007",
             "base": "Тест",
             "drvDataType": "INT",
-            "gain": "0.2",
+            "gain": "0.21",
             "groupName": "Тест 7",
             "max": "10",
             "min": "-10",
@@ -186,7 +186,7 @@
         {
             "accessType": "RW (in STOP)",
             "addressDec": "8",
-            "addressHex": "0x8",
+            "addressHex": "0x0008",
             "base": "Тест",
             "drvDataType": "FRACT",
             "gain": "0.5",

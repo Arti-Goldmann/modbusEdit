@@ -34,6 +34,9 @@ public:
     bool saveProfileAs(QTableWidget* tableData, QTableWidget* tableBaseValues); // Сохранить как...
     QString getLastDirectory() const;
     void setProfilePath(const QString& path) {currentProfilePath = path;};
+    QStringList getRecentProfiles() const;
+    void addRecentProfile(const QString& path);
+    void removeRecentProfile(const QString& path);
 
     // Валидация
     bool validateProfile(const QJsonArray& data);

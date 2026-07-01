@@ -24,6 +24,7 @@ public:
 
     // Загрузить профиль
     void loadProfile(QTableWidget* dataTable, QTableWidget* baseValuesTable);
+    void loadProfileFromPath(const QString& profilePath, QTableWidget* dataTable, QTableWidget* baseValuesTable);
 
     // Сохранить профиль
     bool saveProfile(QTableWidget* dataTable, QTableWidget* baseValuesTable);
@@ -48,6 +49,7 @@ private:
     // Статическая функция для загрузки профиля в фоновом потоке
     static std::optional<JsonProfileManager::TProfileResult> loadProfileInBackground(JsonProfileManager* manager);
 
+    void startProfileLoad(const QString& profilePath, QTableWidget* dataTable, QTableWidget* baseValuesTable);
     bool saveProfileHandler(QTableWidget* dataTable, QTableWidget* baseValuesTable, bool isSaveAs);
 
     QWidget* parentWidget;

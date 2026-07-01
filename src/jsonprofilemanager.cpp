@@ -215,6 +215,60 @@ QString JsonProfileManager::getLastDirectory() const {
     return lastDir;
 }
 
+QStringList JsonProfileManager::getRecentProfiles() const {
+    // Список недавних профилей живет рядом с остальными настройками приложения
+    // в QSettings("MPEI", "modbusEdit"); отдельный settings.ini для этого не нужен.
+    // На Windows Qt обычно хранит такие настройки в реестре пользователя, поэтому
+    // список переживает перезапуск программы и не зависит от рабочей папки exe-файла.
+    QSettings settings("MPEI", "modbusEdit");
+    return settings.value("recentProfiles").toStringList();
+}
+
+void JsonProfileManager::addRecentProfile(const QString& path) {
+    // Пустой путь не должен попадать в историю: такая ситуация возможна, если
+    // вызывающий код получил отмену диалога выбора файла или передал неинициализированную строку.
+    if (path.trimmed().isEmpty()) return;
+
+    // Перед записью приводим путь к абсолютному виду. Так один и тот же профиль
+    // не появится в меню дважды только из-за разных вариантов записи пути.
+    QFileInfo fileInfo(path);
+    QString normalizedPath = fileInfo.absoluteFilePath();
+    QStringList recentProfiles = getRecentProfiles();
+
+    // Новый или повторно открытый профиль ставим первым,
+    // а старые дубликаты того же пути удаляем.
+    recentProfiles.removeAll(normalizedPath);
+    recentProfiles.prepend(normalizedPath);
+
+    // В меню показываем только последние 10 профилей: этого достаточно для
+    // быстрого доступа, но список не разрастается бесконечно в настройках пользователя.
+    while (recentProfiles.size() > 10) {
+        recentProfiles.removeLast();
+    }
+
+    // Перезаписываем весь список одним значением. Так проще поддерживать порядок
+    // элементов: первый путь в QStringList соответствует верхнему пункту меню.
+    QSettings settings("MPEI", "modbusEdit");
+    settings.setValue("recentProfiles", recentProfiles);
+}
+
+void JsonProfileManager::removeRecentProfile(const QString& path) {
+    // Удаление используется, когда пользователь выбрал файл из "Недавних",
+    // а файла на диске уже нет. Пустой путь в таком случае просто игнорируем.
+    if (path.trimmed().isEmpty()) return;
+
+    // Используем ту же нормализацию пути, что и при добавлении, чтобы удаление
+    // сработало независимо от того, как путь был передан вызывающим кодом.
+    QFileInfo fileInfo(path);
+    QString normalizedPath = fileInfo.absoluteFilePath();
+    QStringList recentProfiles = getRecentProfiles();
+
+    recentProfiles.removeAll(normalizedPath);
+
+    QSettings settings("MPEI", "modbusEdit");
+    settings.setValue("recentProfiles", recentProfiles);
+}
+
 void JsonProfileManager::saveLastDirectory(const QString& path) {
     QSettings settings("MPEI", "modbusEdit");
     QFileInfo fileInfo(path);

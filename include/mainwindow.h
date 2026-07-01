@@ -65,6 +65,8 @@ private:
     void setModified(bool modified = true);
     bool maybeSave();
     void processError(const QString& message, const QString& title);
+    void refreshRecentProfilesMenu();
+    void openRecentProfile(const QString& profilePath);
 
     // Статическая функция для генерации файла в фоновом потоке
     static bool genFileInBackground(OutFileGenerator* generator, QJsonArray data, QJsonArray baseValues);
