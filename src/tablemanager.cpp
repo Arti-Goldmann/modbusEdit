@@ -76,6 +76,11 @@ void TableManager::fillTable(QTableWidget* table,
     table->setUpdatesEnabled(false);
     table->setRowCount(0);
 
+    const bool isDataTable = (table == dataTable);
+    const int colAddressHex = isDataTable
+                                  ? mainKeys.indexOf(Constants::JsonKeys::Data::ADDRESS_HEX)
+                                  : -1;
+
     int rowCounter = 0;
     for(const QJsonValue &val : std::as_const(data)) {
 
@@ -88,6 +93,17 @@ void TableManager::fillTable(QTableWidget* table,
         for(int col = 0; col < mainKeys.size(); col++) {
             QString key = mainKeys[col];
             QString str = obj[key].toString();
+
+            // Старые профили могли хранить hex-адрес без лидирующих нулей.
+            // Нормализуем только отображение в основной таблице: сам JSON-файл
+            // не перезаписывается, пока пользователь явно не нажмет "Сохранить".
+            if (col == colAddressHex && !str.trimmed().isEmpty()) {
+                int decValue = AddressConverter::hexToDec(str);
+                if (decValue != -1) {
+                    str = AddressConverter::decToHex(decValue);
+                }
+            }
+
             table->setItem(rowCounter, col, new QTableWidgetItem(str));
         }
 
