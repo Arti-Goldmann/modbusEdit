@@ -156,6 +156,11 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
     for(const QJsonValue &val : std::as_const(data)) {
 
         QJsonObject obj = val.toObject();
+        QString paramType = obj[Constants::JsonKeys::Data::PARAM_TYPE].toString();
+        if (paramType != Constants::ParamType::COMMON && paramType != Constants::ParamType::USER) {
+            continue;
+        }
+
         QString accessType = obj[Constants::JsonKeys::Data::ACCESS_TYPE].toString();
 
         if(targetAccessTypes.contains(accessType)) { //Нашли объект с нужным типом доступа
@@ -182,11 +187,11 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
             }
 
             QString switchCaseCode = "";
-            if(obj[Constants::JsonKeys::Data::PARAM_TYPE] == Constants::ParamType::COMMON) {
+            if(paramType == Constants::ParamType::COMMON) {
                 //Формируем функцию на чтение или запись
                 switchCaseCode = (readOrWrite == FOR_READ) ? funcHandlerGen_R(funcName, obj, IQformat, baseValue):
                                                              funcHandlerGen_W(funcName, obj, IQformat, baseValue);
-            } else if(obj[Constants::JsonKeys::Data::PARAM_TYPE] == Constants::ParamType::USER) {
+            } else if(paramType == Constants::ParamType::USER) {
                 QString userCode = (readOrWrite == FOR_READ) ?
                                        obj[Constants::JsonKeys::Data::USER_CODE_R].toString() :
                                        obj[Constants::JsonKeys::Data::USER_CODE_W].toString();
@@ -321,10 +326,15 @@ QString OutFileGenerator::arrayGen(const QString& arrName, const QStringList& ta
     for(const QJsonValue &val : std::as_const(data)) {
 
         QJsonObject obj = val.toObject();
+        QString paramType = obj[Constants::JsonKeys::Data::PARAM_TYPE].toString();
+        if (paramType != Constants::ParamType::COMMON && paramType != Constants::ParamType::USER) {
+            continue;
+        }
+
         QString accessType = obj[Constants::JsonKeys::Data::ACCESS_TYPE].toString();
 
         if(targetAccessTypes.contains(accessType)) { //Нашли объект с нужным типом
-            QString comment = obj[Constants::JsonKeys::Data::PARAM_TYPE] == Constants::ParamType::COMMON ? obj[Constants::JsonKeys::Data::VAR_NAME].toString() : Constants::UiText::USER_CODE;
+            QString comment = paramType == Constants::ParamType::COMMON ? obj[Constants::JsonKeys::Data::VAR_NAME].toString() : Constants::UiText::USER_CODE;
             QString addressDec = obj[Constants::JsonKeys::Data::ADDRESS_DEC].toString();
             output.append(QString("\t%1, 0,   //%2\n").arg(addressDec, comment));
         }

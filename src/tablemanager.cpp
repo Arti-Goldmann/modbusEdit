@@ -238,6 +238,15 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
         item->setFlags(item->flags() & ~Qt::ItemIsEditable); // убираем возможность редактирования
 
     } else if (rowType == Constants::ParamType::TITLE) {
+        for (int col = 1; col < table->columnCount(); col++) {
+            QTableWidgetItem* extraItem = table->item(rowIndex, col);
+            if (!extraItem) {
+                extraItem = new QTableWidgetItem();
+                table->setItem(rowIndex, col, extraItem);
+            }
+            extraItem->setText("");
+        }
+
         // Объединяем все столбцы в одну ячейку
         table->setSpan(rowIndex, 0, 1, table->columnCount());
 

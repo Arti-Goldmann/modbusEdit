@@ -155,6 +155,17 @@ QJsonArray JsonProfileManager::tableToJsonArray(QTableWidget* table, const QStri
                     obj[Constants::JsonKeys::Data::USER_CODE_W] = "";
                     // Текст заголовка из первой ячейки сохраняем в GROUP_NAME
                     obj[Constants::JsonKeys::Data::GROUP_NAME] = rootItem->text();
+                    obj[Constants::JsonKeys::Data::ACCESS_TYPE] = "";
+                    obj[Constants::JsonKeys::Data::MODBUS_DATA_TYPE] = "";
+                    obj[Constants::JsonKeys::Data::DRV_DATA_TYPE] = "";
+                    obj[Constants::JsonKeys::Data::GAIN] = "";
+                    obj[Constants::JsonKeys::Data::ADDRESS_DEC] = "";
+                    obj[Constants::JsonKeys::Data::ADDRESS_HEX] = "";
+                    obj[Constants::JsonKeys::Data::VAR_NAME] = "";
+                    obj[Constants::JsonKeys::Data::MIN] = "";
+                    obj[Constants::JsonKeys::Data::MAX] = "";
+                    obj[Constants::JsonKeys::Data::BASE] = "";
+                    obj[Constants::JsonKeys::Data::NOTE] = "";
                 }
             }
         }
