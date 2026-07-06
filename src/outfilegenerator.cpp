@@ -246,10 +246,12 @@ QString OutFileGenerator::funcHandlerGen_R(const QString& funcName, const QJsonO
         // Для float - используем функцию преобразования float
         // Формируем имя функции: "MBedit_FloattoInt16" или "MBedit_FloattoUint16"
         QString funcName = QString("MBedit_FloatTo%1").arg(modbusDataType);
-        output.append(QString("\t\t\treg->data = %1(%2, %3);\n")
+        QString limit = (modbusDataType == Constants::ModBusDataType::INT16) ? "32767" : "65535";
+        output.append(QString("\t\t\treg->data = %1(%2, %3, %4);\n")
                           .arg(funcName,
                                varName,
-                               obj[Constants::JsonKeys::Data::GAIN].toString()
+                               obj[Constants::JsonKeys::Data::GAIN].toString(),
+                               limit
                                )
                       );
     }
