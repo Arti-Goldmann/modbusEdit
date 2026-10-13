@@ -34,9 +34,9 @@ void ComboBoxDelegate::setEditorData(QWidget *editor,
     QString currentText = index.data(Qt::EditRole).toString();
     int currentIndex = comboBox->findText(currentText);
     
-    if (currentIndex >= 0) {
-        comboBox->setCurrentIndex(currentIndex);
-    }
+    // Для пустой ячейки не выбираем первый пункт: если пользователь закроет
+    // список, ничего не выбрав, ячейка должна остаться пустой.
+    comboBox->setCurrentIndex(currentIndex);
 }
 
 void ComboBoxDelegate::setModelData(QWidget *editor, 
@@ -45,6 +45,9 @@ void ComboBoxDelegate::setModelData(QWidget *editor,
 {
     QComboBox *comboBox = qobject_cast<QComboBox*>(editor);
     if (!comboBox) return;
+
+    // Ничего не выбрано - оставляем ячейку как есть
+    if (comboBox->currentIndex() < 0) return;
 
     QString selectedText = comboBox->currentText();
     model->setData(index, selectedText, Qt::EditRole);

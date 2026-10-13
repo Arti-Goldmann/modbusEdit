@@ -15,6 +15,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent)
+# CorePrivate нужен для QZipReader/QZipWriter (чтение/запись .xlsx)
+set(QT_NO_PRIVATE_MODULE_WARNING ON)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS CorePrivate)
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -41,6 +44,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         include/jsonprofilemanager.h src/jsonprofilemanager.cpp
         include/comboboxdelegate.h src/comboboxdelegate.cpp
         include/dynamiccomboboxdelegate.h src/dynamiccomboboxdelegate.cpp
+        include/excelexchange.h src/excelexchange.cpp
+        include/excelcolumnsdialog.h src/excelcolumnsdialog.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET modbusEdit APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -60,7 +65,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(modbusEdit PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(modbusEdit PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::CorePrivate)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

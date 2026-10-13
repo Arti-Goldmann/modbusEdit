@@ -1,7 +1,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
+#include <QFileDialog>
+#include "excelexchange.h"
+#include "excelcolumnsdialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -126,7 +130,27 @@ void MainWindow::connectSignals() {
     connect(ui->open, &QAction::triggered, this, &MainWindow::onLoadProfile);
     connect(ui->save, &QAction::triggered, this, &MainWindow::onSaveProfile);
     connect(ui->saveAs, &QAction::triggered, this, &MainWindow::onSaveProfileAs);
+    connect(ui->exportToExcel, &QAction::triggered, this, &MainWindow::onExportExcel);
+    connect(ui->importFromExcel, &QAction::triggered, this, &MainWindow::onImportExcel);
     refreshRecentProfilesMenu();
+
+    // Стандартные горячие клавиши
+    ui->open->setShortcut(QKeySequence::Open);                       // Ctrl+O
+    ui->save->setShortcut(QKeySequence::Save);                       // Ctrl+S
+    ui->saveAs->setShortcut(QKeySequence("Ctrl+Shift+S"));
+    ui->exportToExcel->setShortcut(QKeySequence("Ctrl+E"));
+    ui->importFromExcel->setShortcut(QKeySequence("Ctrl+I"));
+    ui->startGenBtn->setShortcut(QKeySequence("Ctrl+G"));            // Генерировать MBedit.c
+
+    // Горячие клавиши для строк таблиц (Del, Insert, Ctrl+D, Ctrl+Shift+D)
+    tableManager->setupShortcuts(ui->tableWidgetDataValues);
+    tableManager->setupShortcuts(ui->tableWidgetBaseValues);
+
+    // Настройки -> Кодировка MBedit.c: варианты взаимоисключающие
+    QActionGroup* encodingGroup = new QActionGroup(this);
+    encodingGroup->setExclusive(true);
+    encodingGroup->addAction(ui->actionEncodingUtf8);
+    encodingGroup->addAction(ui->actionEncodingCp1251);
 
     // Сигналы от TableManager
     connect(tableManager, &TableManager::dataModified, this, &MainWindow::onDataModified);
@@ -241,13 +265,89 @@ void MainWindow::onSaveProfileAs() {
     profileOperations->saveProfileAs(ui->tableWidgetDataValues, ui->tableWidgetBaseValues);
 }
 
+void MainWindow::onExportExcel() {
+    // Берем данные прямо из таблиц, чтобы в файл попали и несохраненные правки
+    const QJsonArray data = jsonProfileManager.tableToJsonArray(ui->tableWidgetDataValues,
+                                                                jsonProfileManager.DATA_MAIN_KEYS,
+                                                                jsonProfileManager.DATA_HIDDEN_KEYS);
+    const QJsonArray baseValues = jsonProfileManager.tableToJsonArray(ui->tableWidgetBaseValues,
+                                                                      jsonProfileManager.BASE_VALUES_ARR_KEYS);
+
+    ExcelColumnsDialog dialog(ExcelColumnsDialog::Mode::Export, ExcelExchange::groupNames(data), this);
+    if (dialog.exec() != QDialog::Accepted) return;
+
+    // Имя файла по умолчанию - как у профиля
+    QString defaultPath = jsonProfileManager.getLastDirectory();
+    const QString profilePath = jsonProfileManager.getCurrentProfilePath();
+    if (!profilePath.isEmpty()) {
+        QFileInfo info(profilePath);
+        defaultPath = info.absolutePath() + "/" + info.completeBaseName() + ".xlsx";
+    }
+
+    const QString path = QFileDialog::getSaveFileName(this, "Экспорт в Excel", defaultPath, "Excel (*.xlsx)");
+    if (path.isEmpty()) return; // Пользователь отменил выбор
+
+    // В файл попадают только выбранные группы параметров
+    const QJsonArray selectedData = ExcelExchange::filterGroups(data, dialog.selectedGroups());
+
+    ExcelExchange excel;
+    if (!excel.exportToFile(path, selectedData, baseValues, dialog.selectedDataColumns(), dialog.selectedBaseColumns())) {
+        processError(excel.getLastError(), "Ошибка экспорта в Excel");
+        return;
+    }
+    statusBar()->showMessage(QString("Экспортировано в %1").arg(QFileInfo(path).fileName()), 5000);
+}
+
+void MainWindow::onImportExcel() {
+    // Сначала файл: список групп для выбора берется из него
+    const QString path = QFileDialog::getOpenFileName(this, "Импорт из Excel",
+                                                      jsonProfileManager.getLastDirectory(), "Excel (*.xlsx)");
+    if (path.isEmpty()) return; // Пользователь отменил выбор
+
+    ExcelExchange excel;
+    QJsonArray data;
+    QJsonArray baseValues;
+    bool hasData = false;
+    bool hasBase = false;
+
+    // Предварительное чтение листа карты регистров - только чтобы узнать группы
+    QStringList allDataColumns;
+    for (const auto& column : ExcelExchange::dataColumns()) allDataColumns << column.id;
+    QStringList fileGroups;
+    if (excel.importFromFile(path, allDataColumns, {}, {}, data, hasData, baseValues, hasBase)) {
+        fileGroups = ExcelExchange::groupNames(data);
+    }
+
+    ExcelColumnsDialog dialog(ExcelColumnsDialog::Mode::Import, fileGroups, this);
+    if (dialog.exec() != QDialog::Accepted) return;
+    const QJsonArray currentBaseValues = jsonProfileManager.tableToJsonArray(ui->tableWidgetBaseValues,
+                                                                             jsonProfileManager.BASE_VALUES_ARR_KEYS);
+    if (!excel.importFromFile(path, dialog.selectedDataColumns(), dialog.selectedBaseColumns(), currentBaseValues,
+                              data, hasData, baseValues, hasBase)) {
+        processError(excel.getLastError(), "Ошибка импорта из Excel");
+        return;
+    }
+
+    // Сначала базовые величины: от них зависит список в столбце "Базовая величина"
+    if (hasBase) {
+        tableManager->fillTable(ui->tableWidgetBaseValues, baseValues, jsonProfileManager.BASE_VALUES_ARR_KEYS);
+    }
+    if (hasData) {
+        data = ExcelExchange::filterGroups(data, dialog.selectedGroups());
+        tableManager->fillTable(ui->tableWidgetDataValues, data, jsonProfileManager.DATA_MAIN_KEYS, true);
+    }
+
+    setModified(true);
+    statusBar()->showMessage(QString("Импортировано из %1").arg(QFileInfo(path).fileName()), 5000);
+}
+
 bool MainWindow::onSetGenerationPath() {
     if(outFileGenerator.setGenerationPath()) {
         QString path = outFileGenerator.getCurrentGenFilePath();
         QFileInfo fileInfo(path);
         ui->lineEditFieGenDir->setText(fileInfo.absolutePath());
     } else {
-        processError(outFileGenerator.getLastError(), "Ошибка генерации файла");
+        processError(outFileGenerator.getLastError(), "Ошибка генерации файла"); // При отмене выбора ошибка пустая - окно не покажется
         return false;
     }
 
@@ -297,21 +397,26 @@ void MainWindow::onStartGeneration(){
     }
 
     if(!outFileGenerator.hasActiveGenFile()) {
-        progressDialog->close();
-        progressDialog->deleteLater();
-        processError(QString("Не выбран путь генерации файла"), "Ошибка генерации файла");
-        return;
+        // Путь генерации еще не выбран - предлагаем выбрать директорию.
+        // Если пользователь отменил выбор, просто тихо прекращаем генерацию.
+        progressDialog->hide();
+        if(!onSetGenerationPath()) {
+            progressDialog->close();
+            progressDialog->deleteLater();
+            return;
+        }
+        progressDialog->show();
     }
 
     progressDialog->setLabelText("Генерация файла...");
     QApplication::processEvents();
 
     // Создаем watcher для отслеживания завершения
-    // Пользователь выбирает кодировку радиокнопками в главном окне.
+    // Пользователь выбирает кодировку в меню "Настройки -> Кодировка MBedit.c".
     // Сохраняем выбор в генераторе перед запуском фонового потока, чтобы
     // сама генерация не обращалась к UI из другого потока.
     outFileGenerator.setOutputEncoding(
-        ui->radioCp1251->isChecked()
+        ui->actionEncodingCp1251->isChecked()
             ? OutFileGenerator::OutputEncoding::Cp1251
             : OutFileGenerator::OutputEncoding::Utf8);
 
@@ -445,6 +550,9 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 }
 
 void MainWindow::processError(const QString& message, const QString& title) {
+    // Пустое сообщение - пользователь просто отменил выбор в диалоге, это не ошибка
+    if (message.isEmpty()) return;
+
     statusBar()->showMessage(title, 5000);
     qCritical() << message;
     QMessageBox::critical(this, title, message);

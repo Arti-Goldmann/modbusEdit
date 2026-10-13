@@ -69,7 +69,7 @@
        </widget>
       </item>
       <item>
-       <spacer name="generationEncodingSpacer">
+       <spacer name="generationControlsSpacer">
         <property name="orientation">
          <enum>Qt::Orientation::Horizontal</enum>
         </property>
@@ -80,23 +80,6 @@
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="radioUtf8">
-        <property name="text">
-         <string>UTF-8</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="radioCp1251">
-        <property name="text">
-         <string>CP1251</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </item>
@@ -160,7 +143,21 @@
     <addaction name="exportToExcel"/>
     <addaction name="importFromExcel"/>
    </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Настройки</string>
+    </property>
+    <widget class="QMenu" name="menuEncoding">
+     <property name="title">
+      <string>Кодировка MBedit.c</string>
+     </property>
+     <addaction name="actionEncodingUtf8"/>
+     <addaction name="actionEncodingCp1251"/>
+    </widget>
+    <addaction name="menuEncoding"/>
+   </widget>
    <addaction name="menu"/>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="open">
@@ -186,6 +183,25 @@
   <action name="importFromExcel">
    <property name="text">
     <string>Импорт из Excel</string>
+   </property>
+  </action>
+  <action name="actionEncodingUtf8">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>UTF-8</string>
+   </property>
+  </action>
+  <action name="actionEncodingCp1251">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>CP1251</string>
    </property>
   </action>
  </widget>

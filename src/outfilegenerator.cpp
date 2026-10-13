@@ -17,7 +17,8 @@ bool OutFileGenerator::setGenerationPath() {
         );
 
     if (fileGenDir.isEmpty()) {
-        setError("Директория генерации не найдена");
+        // Пользователь отменил выбор - это не ошибка, lastError оставляем пустым
+        lastError.clear();
         return false;
     }
 
@@ -44,14 +45,14 @@ bool OutFileGenerator::generate(const QJsonArray& data, const QJsonArray& baseVa
         out << "//The file was generated automatically.\n#include \"MBedit.h\"\n\n"; //Раскоментить чтобы обычные файлы генерировать
 
         //Формируем функцию на чтение для RW (Holding Registers RW)
-        out << funcHandlerGen("MBhandlerHR_R", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP}, data, baseValues, FOR_READ);
+        out << funcHandlerGen("MBhandlerHR_R", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP, Constants::AccessType::READ_WRITE_READ_ONLY}, data, baseValues, FOR_READ);
         //Формируем функцию на запись для RW (Holding Registers RW)
-        out << funcHandlerGen("MBhandlerHR_W", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP}, data, baseValues, FOR_WRITE);
+        out << funcHandlerGen("MBhandlerHR_W", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP, Constants::AccessType::READ_WRITE_READ_ONLY}, data, baseValues, FOR_WRITE);
         //Формируем функцию на чтение для R (Input Registers R)
         out << funcHandlerGen("MBhandlerIR_R", {Constants::AccessType::READ_ONLY}, data, baseValues, FOR_READ);
 
         out << "// R/W-variables.\n";
-        out << arrayGen("mbodHR", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP}, data);
+        out << arrayGen("mbodHR", {Constants::AccessType::READ_WRITE, Constants::AccessType::READ_WRITE_IN_STOP, Constants::AccessType::READ_WRITE_READ_ONLY}, data);
         out << arrayGen("mbodIR", {Constants::AccessType::READ_ONLY}, data);
 
         //TODO: coils и DI тоже сделать
@@ -187,7 +188,9 @@ QString OutFileGenerator::funcHandlerGen(const QString& funcName, const QStringL
             }
 
             QString switchCaseCode = "";
-            if(paramType == Constants::ParamType::COMMON) {
+            if(accessType == Constants::AccessType::READ_WRITE_READ_ONLY && readOrWrite == FOR_WRITE) {
+                //HR только на чтение: в функции записи оставляем пустой case
+            } else if(paramType == Constants::ParamType::COMMON) {
                 //Формируем функцию на чтение или запись
                 switchCaseCode = (readOrWrite == FOR_READ) ? funcHandlerGen_R(funcName, obj, IQformat, baseValue):
                                                              funcHandlerGen_W(funcName, obj, IQformat, baseValue);

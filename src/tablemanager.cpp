@@ -9,12 +9,109 @@
 #include <QSpinBox>
 #include <QColor>
 #include <QPalette>
+#include <QTimer>
+#include <QPointer>
+#include <algorithm>
+#include <QMessageBox>
+#include <QShortcut>
+#include <QKeySequence>
+#include <climits>
 
 TableManager::TableManager(QObject *parent, QTableWidget* dataTable, QTableWidget* baseValuesTable)
     : QObject(parent),
     dataTable(dataTable),
     baseValuesTable(baseValuesTable)
 {
+}
+
+TableManager::~TableManager() {
+    clearCutBuffer();
+}
+
+void TableManager::clearCutBuffer() {
+    for (auto& rowItems : cutBuffer) {
+        qDeleteAll(rowItems);
+    }
+    cutBuffer.clear();
+    cutTable = nullptr;
+}
+
+void TableManager::cutRow(QTableWidget* table, int row) {
+    if (!isDataRow(table, row)) return;
+
+    int endRow = row + 1;
+
+    // Для заголовка с параметрами спрашиваем, что именно вырезать
+    if (table == dataTable && rowTypeOf(table, row) == Constants::ParamType::TITLE
+        && groupEndRow(table, row) > row + 1) {
+        QMessageBox msgBox(qobject_cast<QWidget*>(parent()));
+        msgBox.setWindowTitle("Вырезать заголовок");
+        msgBox.setIcon(QMessageBox::Question);
+        msgBox.setText("Вырезать вместе с параметрами группы?");
+
+        QPushButton* withParamsButton = msgBox.addButton("Да, с параметрами", QMessageBox::YesRole);
+        QPushButton* titleOnlyButton = msgBox.addButton("Нет, только заголовок", QMessageBox::NoRole);
+        msgBox.addButton("Отмена", QMessageBox::RejectRole);
+        msgBox.setDefaultButton(withParamsButton);
+        msgBox.exec();
+
+        if (msgBox.clickedButton() == withParamsButton) {
+            endRow = groupEndRow(table, row);
+        } else if (msgBox.clickedButton() != titleOnlyButton) {
+            return; // Отмена
+        }
+    }
+
+    // Новое вырезание заменяет старый буфер
+    clearCutBuffer();
+    cutTable = table;
+
+    // clone() сохраняет текст, флаги, цвета и скрытые данные (тип строки, пользовательский код)
+    for (int r = row; r < endRow; r++) {
+        QVector<QTableWidgetItem*> rowItems;
+        for (int col = 0; col < table->columnCount(); col++) {
+            QTableWidgetItem* item = table->item(r, col);
+            rowItems << (item ? item->clone() : nullptr);
+        }
+        cutBuffer << rowItems;
+    }
+
+    for (int r = endRow - 1; r >= row; r--) {
+        table->removeRow(r);
+    }
+
+    emit dataModified();
+}
+
+void TableManager::pasteRows(QTableWidget* table, int row) {
+    if (!canPaste(table)) return;
+
+    // Вставляем над выбранной строкой; если строка не выбрана - в конец (перед плюсиком)
+    int insertRow = (row >= 0 && row < table->rowCount()) ? row : table->rowCount() - 1;
+
+    table->blockSignals(true);
+    for (int i = 0; i < cutBuffer.size(); i++) {
+        const int dstRow = insertRow + i;
+        table->insertRow(dstRow);
+        for (int col = 0; col < cutBuffer[i].size(); col++) {
+            if (cutBuffer[i][col]) {
+                table->setItem(dstRow, col, cutBuffer[i][col]); // Таблица забирает item себе
+            }
+        }
+        // Заголовок занимает всю строку
+        QTableWidgetItem* rootItem = table->item(dstRow, 0);
+        if (rootItem && rootItem->data(Qt::UserRole).toString() == Constants::ParamType::TITLE) {
+            table->setSpan(dstRow, 0, 1, table->columnCount());
+        }
+    }
+    table->blockSignals(false);
+
+    // Вырезанное вставляется один раз: item'ы теперь принадлежат таблице
+    cutBuffer.clear();
+    cutTable = nullptr;
+
+    table->setCurrentCell(insertRow, 0);
+    emit dataModified();
 }
 
 void TableManager::setupTable(QTableWidget* table) {
@@ -213,7 +310,7 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
 
         bool isEmpty = true;
         //В корневой элемент сохраняем пользовательский код
-        if(accessType == Constants::AccessType::READ_ONLY) { //Если R, то тогда нам должны были передать только посльзовательский код на чтение
+        if(Constants::AccessType::isReadOnlyCode(accessType)) { //Если R или RW (чтение), то тогда нам должны были передать только посльзовательский код на чтение
             QString userCode_R = !data.isEmpty() ? data[Constants::UserCodeOffsetInTable::R] : "";
             if(userCode_R != "") isEmpty = false;
             itemRoot->setData(Qt::UserRole + 1 + Constants::UserCodeOffsetInTable::R, userCode_R);
@@ -398,6 +495,17 @@ void TableManager::updateCellsStateByDataType(int rowIndex, QTableWidget* table)
 }
 
 void TableManager::handleCellClicked(QTableWidget* table, int row, int col) {
+    // Ctrl+ЛКМ по параметру - копирование с инкрементом адреса,
+    // по заголовку - копирование группы вместе с параметрами
+    if ((QApplication::keyboardModifiers() & Qt::ControlModifier) && isDataRow(table, row)) {
+        if (table == dataTable && rowTypeOf(table, row) == Constants::ParamType::TITLE) {
+            copyGroup(table, row);
+        } else {
+            copyRow(table, row, table == dataTable);
+        }
+        return;
+    }
+
     if (row == table->rowCount() - 1) {
         // Клик по последней строке - вставляем новую ПЕРЕД ней
         table->insertRow(row);
@@ -465,7 +573,7 @@ void TableManager::handleCellDoubleClicked(QTableWidget* table, int row, int col
                 return;
             }
 
-            int numOfAccessVarieties = (accessType == Constants::AccessType::READ_ONLY) ? 1 : 2;
+            int numOfAccessVarieties = Constants::AccessType::isReadOnlyCode(accessType) ? 1 : 2;
 
             // Получаем текущий пользовательский код
             QVector<QString> userCodeArr;
@@ -585,8 +693,98 @@ void TableManager::handleTableDataChanged(QTableWidget* table, QTableWidgetItem*
         }
     }
 
+    // Адрес изменился - переставляем строку на свое место внутри группы.
+    // Откладываем до возврата в цикл событий: сейчас мы внутри itemChanged
+    // и редактор ячейки еще может работать с этим item.
+    if (table == dataTable && (col == colAddressDec || col == colAddressHex)) {
+        QPointer<QTableWidget> tablePtr(table);
+        QTimer::singleShot(0, this, [this, tablePtr, row, col]() {
+            if (tablePtr) sortGroupByAddress(tablePtr, tablePtr->item(row, col));
+        });
+    }
+
     // Устанавливаем флаг изменений
     emit dataModified();
+}
+
+void TableManager::sortGroupByAddress(QTableWidget* table, QTableWidgetItem* changedItem) {
+    if (!table || !changedItem) return;
+
+    const int changedRow = table->row(changedItem);
+    const int changedCol = table->column(changedItem);
+    if (!isDataRow(table, changedRow)) return;
+    if (rowTypeOf(table, changedRow) == Constants::ParamType::TITLE) return;
+
+    // Границы группы: от строки после заголовка до следующего заголовка (или строки с плюсиком)
+    int start = changedRow;
+    while (start > 0 && rowTypeOf(table, start - 1) != Constants::ParamType::TITLE) {
+        start--;
+    }
+    int end = changedRow + 1;
+    while (isDataRow(table, end) && rowTypeOf(table, end) != Constants::ParamType::TITLE) {
+        end++;
+    }
+    if (end - start < 2) return;
+
+    const int colAddressDec = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_DEC);
+    const int colCount = table->columnCount();
+
+    // Снимаем строки группы целиком: QTableWidgetItem хранит текст, флаги, цвета
+    // и скрытые данные (тип строки, пользовательский код), так что все переезжает вместе
+    struct RowData {
+        QVector<QTableWidgetItem*> items;
+        int address;
+        bool hasAddress;
+    };
+    QVector<RowData> rows;
+    for (int row = start; row < end; row++) {
+        RowData rowData;
+        QTableWidgetItem* decItem = table->item(row, colAddressDec);
+        rowData.address = decItem ? decItem->text().trimmed().toInt(&rowData.hasAddress) : 0;
+        if (!decItem) rowData.hasAddress = false;
+        for (int col = 0; col < colCount; col++) {
+            rowData.items << table->item(row, col);
+        }
+        rows << rowData;
+    }
+
+    // Строки без адреса оставляем в конце группы, равные адреса - в прежнем порядке
+    std::vector<RowData> sorted(rows.begin(), rows.end());
+    std::stable_sort(sorted.begin(), sorted.end(), [](const RowData& a, const RowData& b) {
+        if (a.hasAddress != b.hasAddress) return a.hasAddress;
+        return a.hasAddress && a.address < b.address;
+    });
+
+    bool changed = false;
+    for (int i = 0; i < rows.size(); i++) {
+        if (sorted[i].items != rows[i].items) {
+            changed = true;
+            break;
+        }
+    }
+    if (!changed) return;
+
+    const int currentCol = table->currentColumn();
+
+    table->blockSignals(true);
+    for (int row = start; row < end; row++) {
+        for (int col = 0; col < colCount; col++) {
+            table->takeItem(row, col);
+        }
+    }
+    for (int i = 0; i < static_cast<int>(sorted.size()); i++) {
+        for (int col = 0; col < colCount; col++) {
+            if (sorted[i].items[col]) {
+                table->setItem(start + i, col, sorted[i].items[col]);
+            }
+        }
+    }
+    table->blockSignals(false);
+
+    // Выделение переезжает вместе с измененной строкой
+    const int newRow = table->row(changedItem);
+    table->setCurrentCell(newRow, currentCol >= 0 ? currentCol : changedCol);
+    table->scrollToItem(changedItem);
 }
 
 void TableManager::handleContextMenu(QTableWidget* table, const QPoint &pos) {
@@ -595,133 +793,286 @@ void TableManager::handleContextMenu(QTableWidget* table, const QPoint &pos) {
 
 void TableManager::showContextMenuForTable(const QPoint &pos, QTableWidget* table) {
     int row = table->rowAt(pos.y());
-    if (row < 0) return;
-
-    // Не показывать контекстное меню для последней строки (строки с плюсиком)
-    if (row == table->rowCount() - 1) {
-        return;
-    }
+    if (!isDataRow(table, row)) return; // Не показываем меню для строки с плюсиком и пустого места
 
     // Сохраняем номер строки и таблицу для использования в других методах
     contextMenuClickRow = row;
     contextMenuActiveTable = table;
 
+    const QString rowType = rowTypeOf(table, row);
+    const bool isTitle = (table == dataTable && rowType == Constants::ParamType::TITLE);
+
     QMenu contextMenu;
 
-    QAction *deleteAction = contextMenu.addAction("Удалить");
-    QAction *addAction = contextMenu.addAction("Добавить");
+    // Копирование
+    QAction *copyAction = contextMenu.addAction("Копировать");
+    copyAction->setShortcut(QKeySequence("Ctrl+D"));
 
+    QAction *copyIncAction = nullptr;
+    QAction *copyGroupAction = nullptr;
+    if (table == dataTable) {
+        copyIncAction = contextMenu.addAction("Копировать с инкрементом адреса (Ctrl+ЛКМ)");
+        copyIncAction->setShortcut(QKeySequence("Ctrl+Shift+D"));
+        copyIncAction->setEnabled(!isTitle);
+
+        copyGroupAction = contextMenu.addAction("Копировать группу с параметрами");
+        copyGroupAction->setEnabled(isTitle);
+    }
+
+    contextMenu.addSeparator();
+
+    QAction *cutAction = contextMenu.addAction("Вырезать");
+    cutAction->setShortcut(QKeySequence::Cut);
+    QAction *pasteAction = contextMenu.addAction("Вставить (над строкой)");
+    pasteAction->setShortcut(QKeySequence::Paste);
+    pasteAction->setEnabled(canPaste(table));
+
+    contextMenu.addSeparator();
+
+    QAction *addAction = contextMenu.addAction("Добавить");
+    addAction->setShortcut(QKeySequence(Qt::Key_Insert));
+    QAction *deleteAction = contextMenu.addAction("Удалить");
+    deleteAction->setShortcut(QKeySequence::Delete);
+
+    QAction *renumberAction = nullptr;
     QAction *commonType = nullptr;
     QAction *userType = nullptr;
     QAction *titleType = nullptr;
-    QAction *renumberAction = nullptr;
-    QAction *deleteTitleWithParamsAction = nullptr;
 
-    QTableWidgetItem* rootItem = table->item(row, 0); //Скрытая информация текущей строки в 0 ячейке
-    QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
+    if (table == dataTable) {// Если основная таблица с данными
+        renumberAction = contextMenu.addAction("Перенумеровать адреса с...");
+        renumberAction->setEnabled(isTitle);
 
+        contextMenu.addSeparator();
 
-    if(table == dataTable) {// Если основная таблица с данными
         QMenu *subMenu = contextMenu.addMenu("Тип параметра");
         commonType = subMenu->addAction("Обычный");
         userType = subMenu->addAction("Пользовательский");
         titleType = subMenu->addAction("Заголовок");
-
-        //Для заголовка добавляем специальные кнопки
-        if(rowType == Constants::ParamType::TITLE) {
-            renumberAction = contextMenu.addAction("Перенумеровать адреса с...");
-            deleteTitleWithParamsAction = contextMenu.addAction("Удалить вместе с параметрами");
-        }
     }
 
     QAction *selectedAction = contextMenu.exec(table->mapToGlobal(pos));
+    if (!selectedAction) return;
 
-    if (selectedAction == deleteAction) {
-        deleteRow();
+    if (selectedAction == copyAction) {
+        copyRow(table, row, false);
+    } else if (copyIncAction && selectedAction == copyIncAction) {
+        copyRow(table, row, true);
+    } else if (copyGroupAction && selectedAction == copyGroupAction) {
+        copyGroup(table, row);
+    } else if (selectedAction == cutAction) {
+        cutRow(table, row);
+    } else if (selectedAction == pasteAction) {
+        pasteRows(table, row);
+    } else if (selectedAction == deleteAction) {
+        deleteRow(table, row);
     } else if (selectedAction == addAction) {
-        addRow();
+        addRow(table, row);
+    } else if (renumberAction && selectedAction == renumberAction) {
+        renumberAddresses(row);
     } else if (commonType && selectedAction == commonType) {
-        setRowType(Constants::ParamType::COMMON, contextMenuClickRow, contextMenuActiveTable);
+        setRowType(Constants::ParamType::COMMON, row, table);
         emit dataModified();
-    } else if(userType && selectedAction == userType) {
-        setRowType(Constants::ParamType::USER, contextMenuClickRow, contextMenuActiveTable);
+    } else if (userType && selectedAction == userType) {
+        setRowType(Constants::ParamType::USER, row, table);
         emit dataModified();
-    } else if(titleType && selectedAction == titleType) {
-        setRowType(Constants::ParamType::TITLE, contextMenuClickRow, contextMenuActiveTable);
-        emit dataModified();
-    } else if(renumberAction && selectedAction == renumberAction) {
-        renumberAddresses(contextMenuClickRow);
-    } else if(deleteTitleWithParamsAction && selectedAction == deleteTitleWithParamsAction) {
-        deleteTitleWithParams();
-    }
-}
-
-void TableManager::deleteRow() {
-    if (!contextMenuActiveTable) return;
-
-    if (contextMenuClickRow >= 0 && contextMenuClickRow < contextMenuActiveTable->rowCount() - 1) {
-        contextMenuActiveTable->removeRow(contextMenuClickRow);
+    } else if (titleType && selectedAction == titleType) {
+        setRowType(Constants::ParamType::TITLE, row, table);
         emit dataModified();
     }
 }
 
-void TableManager::addRow() {
-    if (!contextMenuActiveTable) return;
+void TableManager::setupShortcuts(QTableWidget* table) {
+    // Qt::WidgetShortcut - клавиши работают, только когда фокус на самой таблице,
+    // а не в открытом редакторе ячейки (иначе Del в редакторе удалил бы строку).
+    auto addShortcut = [this, table](const QKeySequence& key, std::function<void(int)> handler) {
+        QShortcut* shortcut = new QShortcut(key, table);
+        shortcut->setContext(Qt::WidgetShortcut);
+        connect(shortcut, &QShortcut::activated, this, [table, handler]() {
+            handler(table->currentRow());
+        });
+    };
 
-    int rowIndex = -1;
+    addShortcut(QKeySequence::Delete, [this, table](int row) { deleteRow(table, row); });
+    addShortcut(QKeySequence(Qt::Key_Insert), [this, table](int row) { addRow(table, row); });
+    addShortcut(QKeySequence("Ctrl+D"), [this, table](int row) { copyRow(table, row, false); });
+    addShortcut(QKeySequence::Cut, [this, table](int row) { cutRow(table, row); });
+    addShortcut(QKeySequence::Paste, [this, table](int row) { pasteRows(table, row); });
 
-    if (contextMenuClickRow >= 0) {
-        // Добавляем строку после той, на которую кликнули
-        rowIndex = contextMenuClickRow + 1;
-        contextMenuActiveTable->insertRow(rowIndex);
-
-    } else {
-        // Если не знаем где кликнули, добавляем перед последней строкой (строкой с плюсиком)
-        rowIndex = contextMenuActiveTable->rowCount() - 1;
-        contextMenuActiveTable->insertRow(rowIndex);
+    if (table == dataTable) {
+        addShortcut(QKeySequence("Ctrl+Shift+D"), [this, table](int row) {
+            if (rowTypeOf(table, row) == Constants::ParamType::TITLE) {
+                copyGroup(table, row);
+            } else {
+                copyRow(table, row, true);
+            }
+        });
     }
+}
+
+bool TableManager::isDataRow(QTableWidget* table, int row) const {
+    return table && row >= 0 && row < table->rowCount() - 1;
+}
+
+QString TableManager::rowTypeOf(QTableWidget* table, int row) const {
+    if (!table) return "";
+    QTableWidgetItem* rootItem = table->item(row, 0); //Скрытая информация строки в 0 ячейке
+    return rootItem ? rootItem->data(Qt::UserRole).toString() : "";
+}
+
+int TableManager::groupEndRow(QTableWidget* table, int titleRow) const {
+    // Группа заканчивается на следующем заголовке или на строке с плюсиком
+    int row = titleRow + 1;
+    while (isDataRow(table, row) && rowTypeOf(table, row) != Constants::ParamType::TITLE) {
+        row++;
+    }
+    return row;
+}
+
+void TableManager::cloneRow(QTableWidget* table, int srcRow, int dstRow) {
+    table->insertRow(dstRow);
+    if (srcRow >= dstRow) srcRow++; // Исходная строка сдвинулась вниз после вставки
+
+    // clone() копирует текст, флаги, цвета и скрытые данные (тип строки, пользовательский код)
+    for (int col = 0; col < table->columnCount(); col++) {
+        QTableWidgetItem* srcItem = table->item(srcRow, col);
+        if (srcItem) {
+            table->setItem(dstRow, col, srcItem->clone());
+        }
+    }
+
+    // Заголовок занимает всю строку
+    if (table->columnSpan(srcRow, 0) > 1) {
+        table->setSpan(dstRow, 0, 1, table->columnCount());
+    }
+}
+
+void TableManager::shiftAddress(QTableWidget* table, int row, int delta) {
+    int colAddressDec = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_DEC);
+    int colAddressHex = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_HEX);
+    if (colAddressDec == -1 || colAddressHex == -1) return;
+
+    QTableWidgetItem* decItem = table->item(row, colAddressDec);
+    if (!decItem) return;
+
+    bool ok;
+    int address = decItem->text().trimmed().toInt(&ok);
+    if (!ok) return; // Адрес не задан - не трогаем
+
+    int newAddress = address + delta;
+    decItem->setText(QString::number(newAddress));
+
+    QTableWidgetItem* hexItem = table->item(row, colAddressHex);
+    if (!hexItem) {
+        hexItem = new QTableWidgetItem();
+        table->setItem(row, colAddressHex, hexItem);
+    }
+    hexItem->setText(AddressConverter::decToHex(newAddress));
+}
+
+void TableManager::copyRow(QTableWidget* table, int row, bool incrementAddress) {
+    if (!isDataRow(table, row)) return;
+
+    // Блокируем сигналы, чтобы itemChanged не срабатывал на каждую скопированную ячейку
+    table->blockSignals(true);
+    int newRow = row + 1;
+    cloneRow(table, row, newRow);
+    if (incrementAddress && table == dataTable) {
+        shiftAddress(table, newRow, 1);
+    }
+    table->blockSignals(false);
+
+    table->setCurrentCell(newRow, table->currentColumn() >= 0 ? table->currentColumn() : 0);
+    emit dataModified();
+}
+
+void TableManager::copyGroup(QTableWidget* table, int titleRow) {
+    if (table != dataTable || !isDataRow(table, titleRow)) return;
+    if (rowTypeOf(table, titleRow) != Constants::ParamType::TITLE) return;
+
+    int endRow = groupEndRow(table, titleRow);
+    int groupSize = endRow - titleRow;
+
+    // Сдвиг адресов: копия группы начинается сразу после последнего адреса исходной
+    int colAddressDec = Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::ADDRESS_DEC);
+    int minAddress = INT_MAX;
+    int maxAddress = INT_MIN;
+    for (int row = titleRow + 1; row < endRow; row++) {
+        QTableWidgetItem* decItem = table->item(row, colAddressDec);
+        bool ok = false;
+        int address = decItem ? decItem->text().trimmed().toInt(&ok) : 0;
+        if (ok) {
+            minAddress = qMin(minAddress, address);
+            maxAddress = qMax(maxAddress, address);
+        }
+    }
+    int delta = (minAddress <= maxAddress) ? (maxAddress - minAddress + 1) : 0;
+
+    table->blockSignals(true);
+    for (int i = 0; i < groupSize; i++) {
+        cloneRow(table, titleRow + i, endRow + i);
+        if (delta != 0) {
+            shiftAddress(table, endRow + i, delta);
+        }
+    }
+    table->blockSignals(false);
+
+    table->setCurrentCell(endRow, 0);
+    emit dataModified();
+}
+
+void TableManager::deleteRow(QTableWidget* table, int row) {
+    if (!isDataRow(table, row)) return;
+
+    // Для заголовка с параметрами спрашиваем, что именно удалять
+    if (table == dataTable && rowTypeOf(table, row) == Constants::ParamType::TITLE
+        && groupEndRow(table, row) > row + 1) {
+        QMessageBox msgBox(qobject_cast<QWidget*>(parent()));
+        msgBox.setWindowTitle("Удаление заголовка");
+        msgBox.setIcon(QMessageBox::Question);
+        msgBox.setText("Удалить вместе с параметрами группы?");
+
+        QPushButton* withParamsButton = msgBox.addButton("Да, с параметрами", QMessageBox::YesRole);
+        QPushButton* titleOnlyButton = msgBox.addButton("Нет, только заголовок", QMessageBox::NoRole);
+        msgBox.addButton("Отмена", QMessageBox::RejectRole);
+        msgBox.setDefaultButton(titleOnlyButton);
+        msgBox.exec();
+
+        if (msgBox.clickedButton() == withParamsButton) {
+            deleteTitleWithParams(table, row);
+            return;
+        } else if (msgBox.clickedButton() != titleOnlyButton) {
+            return; // Отмена
+        }
+    }
+
+    table->removeRow(row);
+    emit dataModified();
+}
+
+void TableManager::addRow(QTableWidget* table, int row) {
+    if (!table) return;
+
+    // Добавляем строку после той, на которую кликнули,
+    // иначе - перед последней строкой (строкой с плюсиком)
+    int rowIndex = isDataRow(table, row) ? row + 1 : table->rowCount() - 1;
+    table->insertRow(rowIndex);
 
     //Если основная таблица с данными, то определим дефолтный тип строки
-    if(contextMenuActiveTable == dataTable && rowIndex > -1) {
-        setRowType(Constants::ParamType::COMMON, rowIndex, contextMenuActiveTable);
+    if (table == dataTable) {
+        setRowType(Constants::ParamType::COMMON, rowIndex, table);
     }
 
     emit dataModified();
 }
 
-void TableManager::deleteTitleWithParams() {
-    if (!contextMenuActiveTable || contextMenuClickRow < 0) return;
+void TableManager::deleteTitleWithParams(QTableWidget* table, int titleRow) {
+    if (!isDataRow(table, titleRow)) return;
 
-    int titleRow = contextMenuClickRow;
-
-    // Последняя строка - это строка с плюсиком, поэтому предпоследняя - это rowCount - 2
-    int lastDataRow = contextMenuActiveTable->rowCount() - 2;
-
-    bool isFirstRow = true; // Флаг для первой строки (сам заголовок)
-
-    // Удаляем строки начиная с заголовка
-    // После каждого удаления следующая строка занимает позицию titleRow
-    while (titleRow <= lastDataRow) {
-        // Проверяем тип текущей строки на позиции titleRow
-        QTableWidgetItem* rootItem = contextMenuActiveTable->item(titleRow, 0);
-        QString rowType = rootItem ? rootItem->data(Qt::UserRole).toString() : "";
-
-        // Если встретили новый TITLE (и это не первая строка), останавливаемся
-        if (!isFirstRow && rowType == Constants::ParamType::TITLE) {
-            break;
-        }
-
-        // Удаляем строку
-        contextMenuActiveTable->removeRow(titleRow);
-        isFirstRow = false; // После первого удаления сбрасываем флаг
-
-        // Пересчитываем последнюю строку данных
-        lastDataRow = contextMenuActiveTable->rowCount() - 2;
-
-        // Проверяем, не вышли ли за пределы
-        if (titleRow > lastDataRow) {
-            break;
-        }
+    // Удаляем заголовок и все строки до следующего заголовка
+    int endRow = groupEndRow(table, titleRow);
+    for (int row = endRow - 1; row >= titleRow; row--) {
+        table->removeRow(row);
     }
 
     emit dataModified();

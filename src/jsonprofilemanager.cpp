@@ -98,7 +98,7 @@ bool JsonProfileManager::saveProfileAs(QTableWidget* tableData, QTableWidget* ta
                                                        QObject::tr("JSON (*.json)"));
 
     if (profilePath.isEmpty()) {
-        setError("Не задан путь сохранения профиля");
+        // Пользователь отменил выбор - это не ошибка, lastError оставляем пустым
         return false;
     }
 

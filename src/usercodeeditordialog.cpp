@@ -25,7 +25,7 @@ void UserCodeEditorDialog::setupUI() {
 
     // Определяем количество редакторов
     int numOfAccessVarieties;
-    if (accessType == Constants::AccessType::READ_ONLY) {
+    if (Constants::AccessType::isReadOnlyCode(accessType)) {
         numOfAccessVarieties = 1; // Только чтение
     } else if (accessType == Constants::AccessType::READ_WRITE || accessType == Constants::AccessType::READ_WRITE_IN_STOP) {
         numOfAccessVarieties = 2; // Чтение и запись

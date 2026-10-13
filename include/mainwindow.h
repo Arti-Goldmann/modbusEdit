@@ -76,6 +76,8 @@ private slots:
     void onLoadProfile();
     void onSaveProfile();
     void onSaveProfileAs();
+    void onExportExcel();
+    void onImportExcel();
     bool onSetGenerationPath();
     void onStartGeneration();
 

@@ -12,10 +12,16 @@ namespace Constants {
         constexpr const char* READ_ONLY = "R";
         constexpr const char* READ_WRITE = "RW";
         constexpr const char* READ_WRITE_IN_STOP = "RW (in STOP)";
+        constexpr const char* READ_WRITE_READ_ONLY = "RW (чтение)"; //HR, который можно только читать
 
         // Вспомогательная функция для получения списка типов доступа
         inline QStringList toStringList() {
-            return {READ_WRITE, READ_WRITE_IN_STOP, READ_ONLY};
+            return {READ_WRITE, READ_WRITE_IN_STOP, READ_WRITE_READ_ONLY, READ_ONLY};
+        }
+
+        // Тип доступа, для которого есть только пользовательский код на чтение
+        inline bool isReadOnlyCode(const QString& type) {
+            return type == READ_ONLY || type == READ_WRITE_READ_ONLY;
         }
     }
 

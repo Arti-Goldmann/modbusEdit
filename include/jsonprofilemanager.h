@@ -41,6 +41,9 @@ public:
     // Валидация
     bool validateProfile(const QJsonArray& data);
 
+    // Таблица -> массив JSON в формате профиля (используется и для экспорта в Excel)
+    QJsonArray tableToJsonArray(QTableWidget* table, const QStringList&, const QStringList& = {});
+
     // Геттеры
     QString getCurrentProfilePath() const { return currentProfilePath; }
     QString getLastError() const { return lastError; }
@@ -66,7 +69,6 @@ private:
     std::optional<QJsonObject> readJsonObj(const QString& filePath);
     std::optional<QJsonArray> readJsonArr(const QString& filePath, const QString& field);
 
-    QJsonArray tableToJsonArray(QTableWidget* table, const QStringList&, const QStringList& = {});
 
     // Работа с настройками
     void saveLastDirectory(const QString& path);

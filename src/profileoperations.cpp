@@ -131,7 +131,10 @@ bool ProfileOperations::saveProfileHandler(QTableWidget* dataTable,
     if(result) {
         emit profileSaved(profileManager->getCurrentProfilePath());
     } else {
-        emit errorOccurred(profileManager->getLastError(), "Ошибка сохранения файла");
+        // Пустая ошибка - пользователь отменил выбор файла, сообщать не о чем
+        if (!profileManager->getLastError().isEmpty()) {
+            emit errorOccurred(profileManager->getLastError(), "Ошибка сохранения файла");
+        }
         return false;
     }
 

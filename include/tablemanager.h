@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <QBrush>
 #include <QFont>
+#include <functional>
 #include "constants.h"
 
 
@@ -23,6 +24,7 @@ class TableManager : public QObject
 
 public:
     explicit TableManager(QObject *parent = nullptr, QTableWidget* dataTable = nullptr, QTableWidget* baseValuesTable = nullptr);
+    ~TableManager() override;
 
     // Базовая настройка таблицы
     void setupTable(QTableWidget* table);
@@ -52,6 +54,18 @@ public:
     void handleTableDataChanged(QTableWidget* table, QTableWidgetItem* item);
     void handleContextMenu(QTableWidget* table, const QPoint &pos);
 
+    // Горячие клавиши для работы со строками таблицы (Del, Insert, Ctrl+D, Ctrl+Shift+D)
+    void setupShortcuts(QTableWidget* table);
+
+    // Операции со строками
+    void deleteRow(QTableWidget* table, int row);           // Для заголовка спрашивает, удалять ли параметры группы
+    void addRow(QTableWidget* table, int row);              // Добавляет строку после row
+    void copyRow(QTableWidget* table, int row, bool incrementAddress); // Копия строки ниже исходной
+    void copyGroup(QTableWidget* table, int titleRow);      // Копия заголовка вместе с параметрами группы
+    void cutRow(QTableWidget* table, int row);              // Вырезать строку (для заголовка спрашивает про параметры)
+    void pasteRows(QTableWidget* table, int row);           // Вставить вырезанное над строкой row
+    bool canPaste(QTableWidget* table) const { return table && table == cutTable && !cutBuffer.isEmpty(); }
+
 signals:
     // Сигнал об изменении данных в таблице
     void dataModified();
@@ -62,17 +76,28 @@ signals:
 private:
     // Контекстное меню
     void showContextMenuForTable(const QPoint &pos, QTableWidget* table);
-    void deleteRow();
-    void addRow();
     void applyDefaultComboValues(int rowIndex, QTableWidget* table);
     void renumberAddresses(int titleRow);
-    void deleteTitleWithParams();
+    void deleteTitleWithParams(QTableWidget* table, int titleRow);
+
+    // Вспомогательные функции
+    bool isDataRow(QTableWidget* table, int row) const;     // Строка с данными (не строка с плюсиком)
+    QString rowTypeOf(QTableWidget* table, int row) const;
+    int groupEndRow(QTableWidget* table, int titleRow) const; // Первая строка после группы заголовка
+    void cloneRow(QTableWidget* table, int srcRow, int dstRow);
+    void shiftAddress(QTableWidget* table, int row, int delta);
+    void sortGroupByAddress(QTableWidget* table, QTableWidgetItem* changedItem); // Сортировка строк группы по адресу
 
     // Текущая таблица и строка для контекстного меню
     int contextMenuClickRow = -1;
     QTableWidget* contextMenuActiveTable = nullptr;
     QTableWidget* dataTable = nullptr;
     QTableWidget* baseValuesTable = nullptr;
+
+    // Буфер вырезанных строк: копии ячеек каждой строки (вместе со скрытыми данными)
+    QVector<QVector<QTableWidgetItem*>> cutBuffer;
+    QTableWidget* cutTable = nullptr; // Из какой таблицы вырезали - вставлять можно только туда же
+    void clearCutBuffer();
 };
 
 #endif // TABLEMANAGER_H
