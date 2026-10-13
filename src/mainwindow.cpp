@@ -6,6 +6,7 @@
 #include <QFileDialog>
 #include "excelexchange.h"
 #include "excelcolumnsdialog.h"
+#include "notedelegate.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -121,6 +122,13 @@ void MainWindow::setupDelegates() {
 
     // Устанавливаем делегат для столбца "Формат IQ"
     ui->tableWidgetBaseValues->setItemDelegateForColumn(2, iqFormatDelegate);
+
+    // Примечания: в таблице одной строкой, по клику раскрываются в большое поле
+    NoteDelegate* noteDelegate = new NoteDelegate(this);
+    ui->tableWidgetDataValues->setItemDelegateForColumn(
+        Constants::TableHeaders::DATA_TABLE().indexOf(Constants::TableHeaders::NOTE), noteDelegate);
+    ui->tableWidgetBaseValues->setItemDelegateForColumn(
+        Constants::TableHeaders::BASE_VALUES_ARR().indexOf("Примечание"), noteDelegate);
 }
 
 void MainWindow::connectSignals() {

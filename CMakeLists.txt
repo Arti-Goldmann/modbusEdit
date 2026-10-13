@@ -56,6 +56,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         include/dynamiccomboboxdelegate.h src/dynamiccomboboxdelegate.cpp
         include/excelexchange.h src/excelexchange.cpp
         include/excelcolumnsdialog.h src/excelcolumnsdialog.cpp
+        include/notedelegate.h src/notedelegate.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET modbusEdit APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

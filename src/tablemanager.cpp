@@ -529,12 +529,14 @@ void TableManager::handleCellClicked(QTableWidget* table, int row, int col) {
             col == dataHeaders.indexOf(Constants::TableHeaders::ACCESS_TYPE) ||
             col == dataHeaders.indexOf(Constants::TableHeaders::MODBUS_DATA_TYPE) ||
             col == dataHeaders.indexOf(Constants::TableHeaders::DRV_DATA_TYPE) ||
-            col == dataHeaders.indexOf(Constants::TableHeaders::BASE_VALUE);
+            col == dataHeaders.indexOf(Constants::TableHeaders::BASE_VALUE) ||
+            col == dataHeaders.indexOf(Constants::TableHeaders::NOTE); // Примечание раскрывается по одному клику
     } else if (table == baseValuesTable) {
         // В таблице базовых величин выпадающим списком является столбец "Формат IQ".
         // Здесь пока используем номер колонки напрямую: у таблицы базовых
         // величин нет отдельных констант для имен конкретных колонок.
-        isComboColumn = (col == 2);
+        isComboColumn = (col == 2) ||
+                        col == Constants::TableHeaders::BASE_VALUES_ARR().indexOf("Примечание");
     }
 
     if (isComboColumn) {
