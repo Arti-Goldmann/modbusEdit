@@ -265,11 +265,9 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
     if (rowType != Constants::ParamType::TITLE) {
         table->setSpan(rowIndex, 0, 1, 1);
 
-        // Сбрасываем форматирование первой ячейки
-        QFont font = itemRoot->font();
-        font.setBold(false);
-        font.setPointSize(font.pointSize()); // Оставляем текущий размер
-        itemRoot->setFont(font);
+        // Сбрасываем форматирование первой ячейки к шрифту таблицы
+        // (иначе после заголовка оставался увеличенный жирный шрифт)
+        itemRoot->setFont(table->font());
         itemRoot->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
         // Создаем пустые ячейки для всех столбцов (если их нет)
@@ -299,6 +297,7 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
 
         QString varName = !data.isEmpty() ? data[0] : "";
         item->setText(varName); //Переменная хранится в 0 элементе
+        item->setForeground(QBrush()); // Сбрасываем зеленый цвет пользовательского кода
         item->setFlags(item->flags() | Qt::ItemIsEditable); // делаем редактируемым
 
     } else if (rowType == Constants::ParamType::USER) {
@@ -341,18 +340,26 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
                 extraItem = new QTableWidgetItem();
                 table->setItem(rowIndex, col, extraItem);
             }
+            // Сбрасываем текст и оформление (зеленый цвет кода, серый фон
+            // неактивных ячеек), чтобы при смене типа обратно строка была чистой
             extraItem->setText("");
+            extraItem->setForeground(QBrush());
+            extraItem->setBackground(QBrush());
+            extraItem->setFlags(extraItem->flags() | Qt::ItemIsEditable);
         }
 
         // Объединяем все столбцы в одну ячейку
         table->setSpan(rowIndex, 0, 1, table->columnCount());
 
-        // Устанавливаем текст из varName в первую ячейку
-        QString titleText = !data.isEmpty() ? data[0] : "";
-        itemRoot->setText(titleText);
+        // Текст заголовка: из переданных данных, а при смене типа через меню
+        // оставляем название, которое уже было в первой ячейке
+        if (!data.isEmpty()) {
+            itemRoot->setText(data[0]);
+        }
 
-        // Настраиваем внешний вид
-        QFont font = itemRoot->font();
+        // Настраиваем внешний вид. Шрифт считаем от шрифта таблицы, чтобы
+        // повторная смена типа не увеличивала его каждый раз
+        QFont font = table->font();
         font.setBold(true);
         font.setPointSize(font.pointSize() + 1);
         itemRoot->setFont(font);
@@ -360,6 +367,12 @@ void TableManager::setRowType(const QString& rowType, int rowIndex, QTableWidget
 
         // Делаем редактируемым
         itemRoot->setFlags(itemRoot->flags() | Qt::ItemIsEditable);
+    }
+
+    // Активность ячеек "Коэффициент"/"Базовая величина" зависит от типа данных привода -
+    // пересчитываем, иначе после смены типа строки оставался старый серый фон
+    if (table == dataTable && rowType != Constants::ParamType::TITLE) {
+        updateCellsStateByDataType(rowIndex, table);
     }
 }
 
