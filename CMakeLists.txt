@@ -30,6 +30,16 @@ set(PROJECT_SOURCES
         resources.qrc
 )
 
+# Иконка exe-файла в Windows. Ресурсный .rc генерируем при сборке
+# (в .gitignore стоит *.rc). ModBus.ico на деле PNG, поэтому для exe
+# отдельный настоящий modbusEdit.ico (сделан из ModBus.png).
+if(WIN32)
+    set(APP_ICON_RC "${CMAKE_CURRENT_BINARY_DIR}/app_icon.rc")
+    file(WRITE "${APP_ICON_RC}" "IDI_ICON1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/modbusEdit.ico\"
+")
+    list(APPEND PROJECT_SOURCES "${APP_ICON_RC}")
+endif()
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(modbusEdit
         MANUAL_FINALIZATION
